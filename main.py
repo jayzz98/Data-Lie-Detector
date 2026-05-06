@@ -31,9 +31,10 @@ async def get_landing():
 
 @app.get("/app")
 async def get_app(request: Request):
-    host = request.url.hostname or "localhost"
-    # Use the active tunnel for the dashboard
-    public_app_url = "https://barry-ira-hardwood-annually.trycloudflare.com"
+    # Use the configured Streamlit URL from environment
+    # If the user has only one tunnel, they might need a separate one for the app
+    # or point this to a different port if their tunnel supports it.
+    public_app_url = os.getenv("STREAMLIT_URL", "http://localhost:8502")
     return RedirectResponse(url=public_app_url)
 
 # Serve the static files for the landing page

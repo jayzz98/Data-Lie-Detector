@@ -1,0 +1,25 @@
+# Environment & secrets
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Archives (too large for git)
+*.zip
+
+# Users database (regenerated at runtime)
+users.json
+
+# Test directories
+unzipped_test/
