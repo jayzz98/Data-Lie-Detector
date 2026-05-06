@@ -39,50 +39,50 @@ def _load_logo_b64():
 def show_landing_page():
     """Render the full landing page HTML inside Streamlit."""
 
-    # Hide ALL Streamlit chrome for a clean landing page
+    # NUCLEAR RESET: Force the landing page to be the ONLY thing on the screen.
+    # This kills all Streamlit margins, headers, and sidebars completely.
     st.markdown("""<style>
-    /* 1. Kill Streamlit Header, Footer, and Menus */
+    /* 1. Kill EVERYTHING Streamlit-related */
     header, footer, [data-testid="stHeader"], [data-testid="stToolbar"], 
-    [data-testid="stDecoration"], #MainMenu {
-        display:none!important; visibility:hidden!important; height:0!important;
+    [data-testid="stDecoration"], #MainMenu, [data-testid="stSidebar"], 
+    [data-testid="collapsedControl"] {
+        display:none!important; visibility:hidden!important; height:0!important; width:0!important;
     }
     
-    /* 2. Kill the Sidebar and its logical space */
-    [data-testid="stSidebar"], [data-testid="collapsedControl"] {
-        display:none!important; width:0!important;
+    /* 2. Force the App container to be a transparent full-screen box */
+    .stApp { 
+        margin:0!important; padding:0!important; 
+        background: #06060f !important;
     }
     
-    /* 3. Force the absolute full-width/full-height reset */
-    .stApp { margin:0!important; padding:0!important; }
+    /* 3. Force the main content area to start at (0,0) and take 100% space */
+    [data-testid="stAppViewContainer"] {
+        padding: 0!important;
+        margin: 0!important;
+    }
     
-    /* Target the main view container and the specific block container */
-    [data-testid="stAppViewContainer"], [data-testid="stAppViewBlockContainer"] {
+    [data-testid="stAppViewBlockContainer"] {
         padding: 0!important;
         margin: 0!important;
         max-width: none!important;
-        width: 100%!important;
+        width: 100vw!important;
+        height: 100vh!important;
     }
     
-    .main { 
-        background: #06060f !important;
-        display: block !important;
-    }
-    
+    /* Remove any Streamlit-enforced padding at the top */
     .main .block-container {
-        padding: 0 !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
         margin: 0 !important;
-        max-width: 100% !important;
-        width: 100% !important;
     }
     
-    /* 4. Root Scale fix for 'rem' units */
+    /* 4. Ensure root font-size is exactly 16px */
     html { font-size: 16px !important; }
     
-    /* 5. Global Reset */
-    html, body, .stApp {
-        background: #06060f !important;
+    /* 5. Prevent horizontal scrolling issues */
+    html, body {
         overflow-x: hidden !important;
-        width: 100% !important;
+        background: #06060f !important;
     }
     </style>""", unsafe_allow_html=True)
 
