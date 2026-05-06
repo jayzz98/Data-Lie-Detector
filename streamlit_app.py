@@ -109,25 +109,25 @@ def show_landing_page():
     html_content = html_content.replace('href="/app?plan=semi_annual"', f'href="{app_url}&plan=semi_annual"')
     html_content = html_content.replace('href="/app?plan=yearly"', f'href="{app_url}&plan=yearly"')
 
-    # Final "Exactly Same" Fix:
-    # 1. Combine CSS and HTML
-    import re
-    body_match = re.search(r"<body[^>]*>(.*)</body>", html_content, re.DOTALL | re.IGNORECASE)
-    body_content = body_match.group(1) if body_match else html_content
-    combined = f"<style>{css_content}</style>{body_content}"
-    
-    # 2. Safety Clean: Remove HTML comments and fix JS comments
-    # (We replace // with /* */ so removing newlines doesn't break the script)
-    combined = re.sub(r"<!--.*?-->", "", combined, flags=re.DOTALL)
-    combined = re.sub(r"//.*?\n", " ", combined) 
-    
-    # 3. Minify to a single line: This is the ONLY way to stop st.markdown 
-    # from incorrectly parsing indentation as code blocks or headers.
-    combined = combined.replace("\n", " ").replace("\r", " ")
-    combined = re.sub(r"\s+", " ", combined)
+    # Final "Perfect Visuals" Fix:
+    # 1. Inject the SVG Gradient definition separately via st.markdown
+    # This prevents the st.html sanitizer from stripping it.
+    st.markdown("""
+    <svg width="0" height="0" style="position: absolute;">
+        <defs>
+            <linearGradient id="icon-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#ff6bcb" />
+                <stop offset="100%" stop-color="#7b2ff7" />
+            </linearGradient>
+        </defs>
+    </svg>
+    """, unsafe_allow_html=True)
 
-    # 4. Render with st.markdown (restores SVG gradients and top-level navigation)
-    st.markdown(combined, unsafe_allow_html=True)
+    # 2. Use st.html for the main content. This ensures:
+    # - Perfect Layout (No squashing or markdown bugs)
+    # - Working Navigation (target="_top" works in the same tab)
+    # - CSS is applied correctly
+    st.html(html_content)
 
 
 def show_dashboard():
