@@ -91,9 +91,9 @@ def show_landing_page():
     html_content = html_content.replace('href="/app?plan=semi_annual"', f'href="{app_url}&plan=semi_annual"')
     html_content = html_content.replace('href="/app?plan=yearly"', f'href="{app_url}&plan=yearly"')
 
-    # We use st.markdown so the HTML is injected directly into the main DOM.
-    # This prevents Streamlit Cloud's iframe sandbox from blocking link clicks.
-    st.markdown(html_content, unsafe_allow_html=True)
+    # We use st.html so the HTML is injected directly into the main DOM as pure HTML,
+    # avoiding Markdown parsing issues, and avoiding iframe sandbox restrictions.
+    st.html(html_content)
 
 
 def show_dashboard():
