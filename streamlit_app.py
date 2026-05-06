@@ -41,30 +41,48 @@ def show_landing_page():
 
     # Hide ALL Streamlit chrome for a clean landing page
     st.markdown("""<style>
-    /* 1. Hide Streamlit Header, Footer, and Menus */
-    #MainMenu, footer, header, [data-testid="stToolbar"], [data-testid="stDecoration"], 
-    [data-testid="stHeader"], [data-testid="stSidebar"], [data-testid="collapsedControl"] {
+    /* 1. Kill Streamlit Header, Footer, and Menus */
+    header, footer, [data-testid="stHeader"], [data-testid="stToolbar"], 
+    [data-testid="stDecoration"], #MainMenu {
         display:none!important; visibility:hidden!important; height:0!important;
     }
     
-    /* 2. Force the App to take up the full screen with NO padding */
-    .stApp { margin: 0!important; padding: 0!important; }
-    .main { background: #06060f !important; }
-    .main .block-container {
-        padding: 0!important; 
+    /* 2. Kill the Sidebar and its logical space */
+    [data-testid="stSidebar"], [data-testid="collapsedControl"] {
+        display:none!important; width:0!important;
+    }
+    
+    /* 3. Force the absolute full-width/full-height reset */
+    .stApp { margin:0!important; padding:0!important; }
+    
+    /* Target the main view container and the specific block container */
+    [data-testid="stAppViewContainer"], [data-testid="stAppViewBlockContainer"] {
+        padding: 0!important;
         margin: 0!important;
-        max-width: 100%!important;
+        max-width: none!important;
         width: 100%!important;
     }
     
-    /* 3. Force Root Font Size to 16px so 'rem' units match original design exactly */
+    .main { 
+        background: #06060f !important;
+        display: block !important;
+    }
+    
+    .main .block-container {
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+    
+    /* 4. Root Scale fix for 'rem' units */
     html { font-size: 16px !important; }
     
-    /* 4. Global Background & Scroll fix */
+    /* 5. Global Reset */
     html, body, .stApp {
-        background: #06060f !important; 
+        background: #06060f !important;
         overflow-x: hidden !important;
-        color: #f0f0f5 !important;
+        width: 100% !important;
     }
     </style>""", unsafe_allow_html=True)
 
