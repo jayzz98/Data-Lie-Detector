@@ -89,11 +89,9 @@ def show_landing_page():
     html_content = html_content.replace('href="/app?plan=semi_annual"', 'href="?page=app&plan=semi_annual"')
     html_content = html_content.replace('href="/app?plan=yearly"', 'href="?page=app&plan=yearly"')
 
-    # CRITICAL: Change target="_self" to target="_top" so links navigate the PARENT page
-    html_content = html_content.replace('target="_self"', 'target="_top"')
-
-    # Render the full landing page inside a component
-    st.components.v1.html(html_content, height=4200, scrolling=True)
+    # We use st.markdown so the HTML is injected directly into the main DOM.
+    # This prevents Streamlit Cloud's iframe sandbox from blocking link clicks.
+    st.markdown(html_content, unsafe_allow_html=True)
 
 
 def show_dashboard():
