@@ -83,11 +83,11 @@ def show_landing_page():
             f'<link rel="icon" href="data:image/png;base64,{logo_b64}">'
         )
 
-    # Fix all /app links → ?page=app, and use target="_top" to break out of iframe and bypass Streamlit's SPA router
-    html_content = html_content.replace('href="/app"', 'href="?page=app" target="_top"')
-    html_content = html_content.replace('href="/app?plan=monthly"', 'href="?page=app&plan=monthly" target="_top"')
-    html_content = html_content.replace('href="/app?plan=semi_annual"', 'href="?page=app&plan=semi_annual" target="_top"')
-    html_content = html_content.replace('href="/app?plan=yearly"', 'href="?page=app&plan=yearly" target="_top"')
+    # Fix all /app links → ?page=app
+    html_content = html_content.replace('href="/app"', 'href="?page=app"')
+    html_content = html_content.replace('href="/app?plan=monthly"', 'href="?page=app&plan=monthly"')
+    html_content = html_content.replace('href="/app?plan=semi_annual"', 'href="?page=app&plan=semi_annual"')
+    html_content = html_content.replace('href="/app?plan=yearly"', 'href="?page=app&plan=yearly"')
 
     # We use st.markdown so the HTML is injected directly into the main DOM.
     # This prevents Streamlit Cloud's iframe sandbox from blocking link clicks.
