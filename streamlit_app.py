@@ -96,9 +96,27 @@ def show_landing_page():
     html_content = html_content.replace('href="/app?plan=semi_annual"', f'href="{app_url}&plan=semi_annual"')
     html_content = html_content.replace('href="/app?plan=yearly"', f'href="{app_url}&plan=yearly"')
 
-    # We use st.html so the HTML is injected directly into the main DOM as pure HTML,
-    # avoiding Markdown parsing issues, and avoiding iframe sandbox restrictions.
-    st.html(html_content)
+    # Fix: Use st.markdown with a cleaned string to keep icons and navigation working.
+    import re
+    
+    # 1. Extract the body content
+    body_match = re.search(r"<body[^>]*>(.*)</body>", html_content, re.DOTALL | re.IGNORECASE)
+    body_content = body_match.group(1) if body_match else html_content
+    
+    # 2. Combine the CSS and the body content
+    # We must include the <style> tag so the design actually renders!
+    combined_content = f"<style>{css_content}</style>\n{body_content}"
+    
+    # 3. Remove HTML comments to prevent markdown parsing issues
+    combined_content = re.sub(r"<!--.*?-->", "", combined_content, flags=re.DOTALL)
+    
+    # 4. Strip leading whitespace from every line to prevent markdown code blocks.
+    # This is the "magic" that makes it render as HTML instead of raw text.
+    combined_content = "\n".join([line.lstrip() for line in combined_content.split("\n")])
+
+    # We use st.markdown with unsafe_allow_html=True to restore SVG support
+    # and keep navigation working via target="_top" (single tab).
+    st.markdown(combined_content, unsafe_allow_html=True)
 
 
 def show_dashboard():
