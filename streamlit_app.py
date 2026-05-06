@@ -22,6 +22,10 @@ st.set_page_config(
 # ═══════════════════════════════════════════════════════════════════════
 page = st.query_params.get("page", "landing")
 
+# If auth callbacks or login actions are in URL, route to the app
+if any(k in st.query_params for k in ["login_email", "code", "login", "plan"]):
+    page = "app"
+
 
 def _load_logo_b64():
     logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "logo.png")
