@@ -83,11 +83,13 @@ def show_landing_page():
             f'<link rel="icon" href="data:image/png;base64,{logo_b64}">'
         )
 
-    # Fix all /app links → ?page=app
-    html_content = html_content.replace('href="/app"', 'href="?page=app"')
-    html_content = html_content.replace('href="/app?plan=monthly"', 'href="?page=app&plan=monthly"')
-    html_content = html_content.replace('href="/app?plan=semi_annual"', 'href="?page=app&plan=semi_annual"')
-    html_content = html_content.replace('href="/app?plan=yearly"', 'href="?page=app&plan=yearly"')
+    # Fix all /app links → absolute URL with ?page=app
+    # We must use the absolute URL because target="_top" resolves relative URLs against the iframe's base URL!
+    app_url = "https://data-lie-detector-icjvsdmt7y7zystrxhqy5r.streamlit.app/?page=app"
+    html_content = html_content.replace('href="/app"', f'href="{app_url}"')
+    html_content = html_content.replace('href="/app?plan=monthly"', f'href="{app_url}&plan=monthly"')
+    html_content = html_content.replace('href="/app?plan=semi_annual"', f'href="{app_url}&plan=semi_annual"')
+    html_content = html_content.replace('href="/app?plan=yearly"', f'href="{app_url}&plan=yearly"')
 
     # We use st.markdown so the HTML is injected directly into the main DOM.
     # This prevents Streamlit Cloud's iframe sandbox from blocking link clicks.
