@@ -41,18 +41,31 @@ def show_landing_page():
 
     # Hide ALL Streamlit chrome for a clean landing page
     st.markdown("""<style>
-    #MainMenu, footer, header, [data-testid="stToolbar"],
-    [data-testid="stSidebar"], [data-testid="collapsedControl"],
-    [data-testid="stHeader"], [data-testid="stDecoration"] {
-        display:none!important; visibility:hidden!important;
+    /* 1. Hide Streamlit Header, Footer, and Menus */
+    #MainMenu, footer, header, [data-testid="stToolbar"], [data-testid="stDecoration"], 
+    [data-testid="stHeader"], [data-testid="stSidebar"], [data-testid="collapsedControl"] {
+        display:none!important; visibility:hidden!important; height:0!important;
     }
+    
+    /* 2. Force the App to take up the full screen with NO padding */
+    .stApp { margin: 0!important; padding: 0!important; }
+    .main { background: #06060f !important; }
     .main .block-container {
-        padding:0!important; max-width:100%!important;
+        padding: 0!important; 
+        margin: 0!important;
+        max-width: 100%!important;
+        width: 100%!important;
     }
+    
+    /* 3. Force Root Font Size to 16px so 'rem' units match original design exactly */
+    html { font-size: 16px !important; }
+    
+    /* 4. Global Background & Scroll fix */
     html, body, .stApp {
-        background: #06060f !important; overflow-x: hidden;
+        background: #06060f !important; 
+        overflow-x: hidden !important;
+        color: #f0f0f5 !important;
     }
-    iframe { border: none !important; }
     </style>""", unsafe_allow_html=True)
 
     logo_b64 = _load_logo_b64()
