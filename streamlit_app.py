@@ -8,23 +8,24 @@ import os
 import base64
 
 # ═══════════════════════════════════════════════════════════════════════
-# PAGE CONFIG (must be first Streamlit command)
-# ═══════════════════════════════════════════════════════════════════════
-st.set_page_config(
-    page_title="Data Lie Detector",
-    page_icon="assets/logo.png",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
-
-# ═══════════════════════════════════════════════════════════════════════
-# ROUTING LOGIC
+# ROUTING LOGIC (Determines Page)
 # ═══════════════════════════════════════════════════════════════════════
 page = st.query_params.get("page", "landing")
 
 # If auth callbacks or login actions are in URL, route to the app
 if any(k in st.query_params for k in ["login_email", "code", "login", "plan"]):
     page = "app"
+
+# ═══════════════════════════════════════════════════════════════════════
+# PAGE CONFIG (must be first Streamlit command)
+# ═══════════════════════════════════════════════════════════════════════
+st.set_page_config(
+    page_title="Data Lie Detector",
+    page_icon="assets/logo.png",
+    layout="wide",
+    initial_sidebar_state="expanded" if page == "app" else "collapsed"
+)
+
 
 
 def _load_logo_b64():
