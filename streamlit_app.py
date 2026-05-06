@@ -96,27 +96,22 @@ def show_landing_page():
     html_content = html_content.replace('href="/app?plan=semi_annual"', f'href="{app_url}&plan=semi_annual"')
     html_content = html_content.replace('href="/app?plan=yearly"', f'href="{app_url}&plan=yearly"')
 
-    # Fix: Use st.markdown with a cleaned string to keep icons and navigation working.
-    import re
-    
-    # 1. Extract the body content
-    body_match = re.search(r"<body[^>]*>(.*)</body>", html_content, re.DOTALL | re.IGNORECASE)
-    body_content = body_match.group(1) if body_match else html_content
-    
-    # 2. Combine the CSS and the body content
-    # We must include the <style> tag so the design actually renders!
-    combined_content = f"<style>{css_content}</style>\n{body_content}"
-    
-    # 3. Remove HTML comments to prevent markdown parsing issues
-    combined_content = re.sub(r"<!--.*?-->", "", combined_content, flags=re.DOTALL)
-    
-    # 4. Strip leading whitespace from every line to prevent markdown code blocks.
-    # This is the "magic" that makes it render as HTML instead of raw text.
-    combined_content = "\n".join([line.lstrip() for line in combined_content.split("\n")])
+    # To restore the landing page EXACTLY, we use st.html.
+    # To fix the "missing icons" issue in st.html, we must inline the gradient definition
+    # into EVERY SVG so they are self-contained and don't get stripped by the sanitizer.
+    gradient_def = """
+    <defs>
+        <linearGradient id="icon-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#ff6bcb" />
+            <stop offset="100%" stop-color="#7b2ff7" />
+        </linearGradient>
+    </defs>
+    """
+    html_content = html_content.replace('<svg ', f'<svg>{gradient_def}')
 
-    # We use st.markdown with unsafe_allow_html=True to restore SVG support
-    # and keep navigation working via target="_top" (single tab).
-    st.markdown(combined_content, unsafe_allow_html=True)
+    # We use st.html to render pure HTML. This allows target="_top" navigation
+    # (single tab) and avoids all the weird markdown formatting bugs.
+    st.html(html_content)
 
 
 def show_dashboard():
