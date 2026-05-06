@@ -109,22 +109,25 @@ def show_landing_page():
     html_content = html_content.replace('href="/app?plan=semi_annual"', f'href="{app_url}&plan=semi_annual"')
     html_content = html_content.replace('href="/app?plan=yearly"', f'href="{app_url}&plan=yearly"')
 
-    # To restore the landing page EXACTLY, we use st.html.
-    # To fix the "missing icons" issue in st.html, we must inline the gradient definition
-    # into EVERY SVG so they are self-contained and don't get stripped by the sanitizer.
-    gradient_def = """
-    <defs>
-        <linearGradient id="icon-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#ff6bcb" />
-            <stop offset="100%" stop-color="#7b2ff7" />
-        </linearGradient>
-    </defs>
-    """
-    html_content = html_content.replace('<svg ', f'<svg>{gradient_def}')
+    # Final "Exactly Same" Fix:
+    # 1. Combine CSS and HTML
+    import re
+    body_match = re.search(r"<body[^>]*>(.*)</body>", html_content, re.DOTALL | re.IGNORECASE)
+    body_content = body_match.group(1) if body_match else html_content
+    combined = f"<style>{css_content}</style>{body_content}"
+    
+    # 2. Safety Clean: Remove HTML comments and fix JS comments
+    # (We replace // with /* */ so removing newlines doesn't break the script)
+    combined = re.sub(r"<!--.*?-->", "", combined, flags=re.DOTALL)
+    combined = re.sub(r"//.*?\n", " ", combined) 
+    
+    # 3. Minify to a single line: This is the ONLY way to stop st.markdown 
+    # from incorrectly parsing indentation as code blocks or headers.
+    combined = combined.replace("\n", " ").replace("\r", " ")
+    combined = re.sub(r"\s+", " ", combined)
 
-    # We use st.html to render pure HTML. This allows target="_top" navigation
-    # (single tab) and avoids all the weird markdown formatting bugs.
-    st.html(html_content)
+    # 4. Render with st.markdown (restores SVG gradients and top-level navigation)
+    st.markdown(combined, unsafe_allow_html=True)
 
 
 def show_dashboard():
