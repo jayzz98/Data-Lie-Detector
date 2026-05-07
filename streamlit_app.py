@@ -43,7 +43,7 @@ def show_landing_page():
     # This kills all Streamlit margins, headers, and sidebars completely.
     st.markdown("""<style>
     /* 1. Kill EVERYTHING Streamlit-related */
-    header, footer, [data-testid="stHeader"], [data-testid="stToolbar"], 
+    header, [data-testid="stFooter"], [data-testid="stHeader"], [data-testid="stToolbar"], 
     [data-testid="stDecoration"], #MainMenu, [data-testid="stSidebar"], 
     [data-testid="collapsedControl"] {
         display:none!important; visibility:hidden!important; height:0!important; width:0!important;
