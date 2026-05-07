@@ -309,7 +309,7 @@ body {
 }
 .dash-alert.critical { background: rgba(255,23,68,0.1); color: #ff8a80; border: 1px solid rgba(255,23,68,0.2); }
 .dash-alert.moderate { background: rgba(255,171,0,0.1); color: #ffd54f; border: 1px solid rgba(255,171,0,0.2); }
-.dash-alert minor { background: rgba(100,181,246,0.1); color: #90caf9; border: 1px solid rgba(100,181,246,0.2); }
+.dash-alert.minor { background: rgba(100,181,246,0.1); color: #90caf9; border: 1px solid rgba(100,181,246,0.2); }
 .dash-alert .sev {
     font-size: 0.6rem;
     font-weight: 700;
