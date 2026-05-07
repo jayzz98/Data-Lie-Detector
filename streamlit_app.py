@@ -97,36 +97,47 @@ def show_landing_page():
     # In Streamlit's iframe, IntersectionObserver can be flaky. We add a script to force trigger animations.
     animation_fix = """
     <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        setTimeout(function() {
-            document.querySelectorAll('.feature-card, .step, .price-card').forEach(function(el) {
-                el.classList.add('animate-in');
-            });
-        }, 1500); // Fallback to show all after 1.5s
-    });
+    function forceShow() {
+        document.querySelectorAll('.feature-card, .step, .price-card').forEach(function(el) {
+            el.style.opacity = '1';
+            el.style.transform = 'translateY(0) scale(1)';
+            el.classList.add('animate-in');
+        });
+    }
+    document.addEventListener("DOMContentLoaded", forceShow);
+    window.addEventListener("load", forceShow);
+    setTimeout(forceShow, 500);
+    setTimeout(forceShow, 1500);
+    setTimeout(forceShow, 3000);
     </script>
     """
     
     # 7. Inject Styles and Scripts
     full_html = f"""
-    <style>{css_content}</style>
-    {html_content}
-    {animation_fix}
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>{css_content}</style>
+    </head>
+    <body>
+        <svg width="0" height="0" style="position: absolute;">
+            <defs>
+                <linearGradient id="icon-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#ff6bcb" />
+                    <stop offset="100%" stop-color="#7b2ff7" />
+                </linearGradient>
+            </defs>
+        </svg>
+        {html_content}
+        {animation_fix}
+    </body>
+    </html>
     """
 
-    # 8. Render
-    st.markdown("""
-    <svg width="0" height="0" style="position: absolute;">
-        <defs>
-            <linearGradient id="icon-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#ff6bcb" />
-                <stop offset="100%" stop-color="#7b2ff7" />
-            </linearGradient>
-        </defs>
-    </svg>
-    """, unsafe_allow_html=True)
-    
-    st.html(full_html)
+    # 8. Render using components.html for better iframe control and height
+    import streamlit.components.v1 as components
+    components.html(full_html, height=5000, scrolling=False)
+
 
 
 
