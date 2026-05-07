@@ -46,11 +46,15 @@ if page == "landing":
                 logo_b64 = base64.b64encode(f.read()).decode()
             html = html.replace('src="logo.png"', f'src="data:image/png;base64,{logo_b64}"')
 
-        app_base = "https://data-lie-detector-icjvsdmt7y7zystrxhqy5r.streamlit.app"
-        # Using double quotes escaped for the f-string inside the generated file
-        html = re.sub(r'href="/app[^"]*"', lambda m: f'href="{app_base}/?page=app" target="_top" onclick="window.open(\"{app_base}/?page=app\", \"_top\"); return false;"', html)
+        # ── ULTIMATE BREAKOUT ──
+        app_url = "https://data-lie-detector-icjvsdmt7y7zystrxhqy5r.streamlit.app"
         
-        overrides = "<style>.feature-card, .step, .price-card { opacity: 1 !important; transform: none !important; } html, body { background: #06060f !important; overflow-y: auto !important; }</style>"
+        breakout_script = f"<script>document.addEventListener('click', function(e) {{ var a = e.target.closest('a'); if (a && a.getAttribute('href')) {{ var href = a.getAttribute('href'); if (href.includes('/app') || href.includes('page=app')) {{ e.preventDefault(); var targetUrl = '{app_url}/?page=app'; if (href.includes('plan=')) {{ var m = href.match(/plan=([^&\\s\"']*)/); if(m) targetUrl += '&plan=' + m[1]; }} window.top.location.href = targetUrl; }} }} }}, true);</script>"
+        
+        # Replace hrefs with absolute URLs as a backup
+        html = re.sub(r'href="/app[^"]*"', lambda m: f'href="{app_url}/?page=app" target="_top"', html)
+
+        overrides = f"<style>.feature-card, .step, .price-card {{ opacity: 1 !important; transform: none !important; }} html, body {{ background: #06060f !important; overflow-y: auto !important; }}</style>{breakout_script}"
         html = html.replace("</head>", f"{overrides}</head>")
         components.html(html, height=2000, scrolling=True)
         st.stop()
