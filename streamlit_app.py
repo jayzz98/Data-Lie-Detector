@@ -64,20 +64,20 @@ def show_landing_page():
             html = html.replace('src="logo.png"', f'src="data:image/png;base64,{logo_b64}"')
 
         # ── HYPER-ROBUST NAVIGATION ──
-        # 1. Regex replacement for all /app links
-        # 2. Injecting an 'onclick' handler that uses window.open(url, '_top')
-        # This is the industry-standard way to break out of iframes.
         app_base = "https://data-lie-detector-icjvsdmt7y7zystrxhqy5r.streamlit.app"
         
         def link_replacer(match):
-            original_href = match.group(1)
+            original_href = match.group(1) # This refers to the content within parentheses
             new_url = f"{app_base}/?page=app"
             if "plan=" in original_href:
-                plan = re.search(r"plan=([^&\s\"']*)", original_href).group(1)
-                new_url += f"&plan={plan}"
+                plan_match = re.search(r"plan=([^&\s\"']*)", original_href)
+                if plan_match:
+                    new_url += f"&plan={plan_match.group(1)}"
+            # Return the full attribute with breakout logic
             return f'href="{new_url}" target="_top" onclick="window.open(\'{new_url}\', \'_top\'); return false;"'
 
-        html = re.sub(r'href="/app[^"]*"', link_replacer, html)
+        # Fixed Regex with capturing group for the href value
+        html = re.sub(r'href="(/app[^"]*)"', link_replacer, html)
 
         # Inject Final Fixes
         overrides = """
@@ -92,7 +92,7 @@ def show_landing_page():
         components.html(html, height=2000, scrolling=True)
 
     except Exception as e:
-        st.error(f"Error: {e}")
+        st.error(f"Execution Error: {e}")
 
 def show_dashboard():
     app_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "app.py")
