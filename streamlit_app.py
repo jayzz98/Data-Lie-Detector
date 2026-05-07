@@ -4,41 +4,41 @@ import os
 import base64
 import streamlit.components.v1 as components
 
-# SET PAGE CONFIG FIRST (Must be the first Streamlit command)
-try:
-    st.set_page_config(
-        page_title="Data Lie Detector",
-        page_icon="🕵️",
-        layout="wide",
-    )
-except Exception as e:
-    pass # If already set, ignore
+# 1. Page Config (Must be first)
+st.set_page_config(
+    page_title="Data Lie Detector",
+    page_icon="landing/logo.png" if os.path.exists("landing/logo.png") else "🕵️",
+    layout="wide",
+)
 
-# 1. Routing
+# 2. Routing
 query_params = st.query_params
 page = query_params.get("page", "landing")
 
-auth_triggers = ["login_email", "code", "login", "plan", "state"]
-if any(k in query_params for k in auth_triggers):
+# Auto-route to app if auth/plan triggers are present
+if any(k in query_params for k in ["login_email", "code", "login", "plan", "state"]):
     page = "app"
 
 def show_landing_page():
-    # ── NUCLEAR RESET ──
-    # We hide Streamlit's UI elements to make it look like a pure landing page
+    # ── NUCLEAR RESET: Hide Streamlit chrome without killing the container ──
     st.markdown("""<style>
-    header, footer, [data-testid="stFooter"], [data-testid="stHeader"],
+    /* Hide specific Streamlit elements */
+    [data-testid="stHeader"], [data-testid="stFooter"], 
     [data-testid="stToolbar"], [data-testid="stDecoration"],
-    [data-testid="stStatusWidget"], #MainMenu, [data-testid="collapsedControl"],
-    .stDeployButton {
+    #MainMenu, .stDeployButton, [data-testid="collapsedControl"] {
         display: none !important;
         visibility: hidden !important;
-        height: 0 !important;
     }
+    
+    /* Remove padding and set background */
     html, body, .stApp {
         background: #06060f !important;
         margin: 0 !important;
         padding: 0 !important;
+        overflow: hidden !important;
     }
+    
+    /* Container cleanup */
     [data-testid="stAppViewContainer"] {
         padding: 0 !important;
     }
@@ -46,6 +46,8 @@ def show_landing_page():
         padding: 0 !important;
         max-width: 100% !important;
     }
+    
+    /* Force the component iframe to fill the screen */
     iframe {
         position: fixed !important;
         top: 0 !important;
@@ -53,67 +55,76 @@ def show_landing_page():
         width: 100vw !important;
         height: 100vh !important;
         border: none !important;
-        z-index: 9999 !important;
+        z-index: 999999 !important;
     }
     </style>""", unsafe_allow_html=True)
 
-    # ── LOAD ASSETS ──
+    # ── LOAD AND PREPARE HTML ──
     base_dir = os.path.dirname(os.path.abspath(__file__))
     landing_dir = os.path.join(base_dir, "landing")
     
-    index_path = os.path.join(landing_dir, "index.html")
-    style_path = os.path.join(landing_dir, "style.css")
-    logo_path = os.path.join(landing_dir, "logo.png")
+    try:
+        with open(os.path.join(landing_dir, "index.html"), "r", encoding="utf-8") as f:
+            html = f.read()
+        
+        # Inline CSS
+        if os.path.exists(os.path.join(landing_dir, "style.css")):
+            with open(os.path.join(landing_dir, "style.css"), "r", encoding="utf-8") as f:
+                css = f.read()
+            html = html.replace('<link rel="stylesheet" href="style.css?v=2">', f'<style>{css}</style>')
+        
+        # Inline Logo
+        logo_path = os.path.join(landing_dir, "logo.png")
+        if os.path.exists(logo_path):
+            with open(logo_path, "rb") as f:
+                logo_b64 = base64.b64encode(f.read()).decode()
+            html = html.replace('src="logo.png"', f'src="data:image/png;base64,{logo_b64}"')
 
-    if not os.path.exists(index_path):
-        st.error(f"Missing index.html at {index_path}")
-        return
+        # Fix Links for Streamlit Routing
+        html = html.replace('href="/app"', 'href="?page=app" target="_top"')
+        html = html.replace('href="/app?plan=monthly"', 'href="?page=app&plan=monthly" target="_top"')
+        html = html.replace('href="/app?plan=semi_annual"', 'href="?page=app&plan=semi_annual" target="_top"')
+        html = html.replace('href="/app?plan=yearly"', 'href="?page=app&plan=yearly" target="_top"')
 
-    with open(index_path, "r", encoding="utf-8") as f:
-        html = f.read()
-    
-    if os.path.exists(style_path):
-        with open(style_path, "r", encoding="utf-8") as f:
-            css = f.read()
-        html = html.replace('<link rel="stylesheet" href="style.css?v=2">', f'<style>{css}</style>')
+        # Inject Iframe Fixes (Animations, Background)
+        iframe_fixes = """
+        <style>
+        /* Ensure animations are visible in iframe */
+        .feature-card, .step, .price-card { opacity: 1 !important; transform: none !important; }
+        .feature-card.animate-in, .step.animate-in, .price-card.animate-in { opacity: 1 !important; transform: none !important; }
+        
+        /* Smooth scrolling inside iframe */
+        html, body { 
+            overflow-x: hidden !important; 
+            overflow-y: auto !important; 
+            height: auto !important; 
+            min-height: 100vh !important; 
+            background: #06060f !important;
+            scroll-behavior: smooth;
+        }
+        .navbar { position: fixed !important; }
+        </style>
+        """
+        html = html.replace("</head>", f"{iframe_fixes}</head>")
 
-    if os.path.exists(logo_path):
-        with open(logo_path, "rb") as f:
-            logo_b64 = base64.b64encode(f.read()).decode()
-        html = html.replace('src="logo.png"', f'src="data:image/png;base64,{logo_b64}"')
+        # Render Component
+        components.html(html, height=2000, scrolling=True)
 
-    # ── LINK REPLACEMENT ──
-    # Ensure links trigger the Streamlit app routing
-    html = html.replace('href="/app"', 'href="?page=app" target="_top"')
-    html = html.replace('href="/app?plan=monthly"', 'href="?page=app&plan=monthly" target="_top"')
-    html = html.replace('href="/app?plan=semi_annual"', 'href="?page=app&plan=semi_annual" target="_top"')
-    html = html.replace('href="/app?plan=yearly"', 'href="?page=app&plan=yearly" target="_top"')
-
-    # ── IFRAME FIXES ──
-    iframe_fixes = """
-    <style>
-    .feature-card, .step, .price-card { opacity: 1 !important; transform: none !important; }
-    .feature-card.animate-in, .step.animate-in, .price-card.animate-in { opacity: 1 !important; transform: none !important; }
-    html, body { overflow-x: hidden !important; overflow-y: auto !important; height: auto !important; min-height: 100vh !important; background: #06060f !important; }
-    .navbar { position: fixed !important; }
-    </style>
-    """
-    html = html.replace("</head>", f"{iframe_fixes}</head>")
-
-    # Render
-    components.html(html, height=2000, scrolling=True)
+    except Exception as e:
+        st.error(f"Failed to load landing page assets: {e}")
 
 def show_dashboard():
     app_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "app.py")
     if os.path.exists(app_path):
         with open(app_path, "r", encoding="utf-8") as f:
             code = f.read()
+        # Suppress nested page_config
         code = code.replace("st.set_page_config", "# st.set_page_config")
         exec(code, {"__name__": "__main__", "__file__": app_path, "st": st})
     else:
-        st.error("Dashboard (app.py) not found.")
+        st.error("Dashboard engine (app.py) missing.")
 
-# Routing
+# Main Router
 if page == "app":
     show_dashboard()
 else:
