@@ -5,7 +5,7 @@ def get_content(path):
     with open(path, 'r', encoding='utf-8', errors='ignore') as f:
         return f.read()
 
-header = """# -*- coding: utf-8 -*-
+header = r"""# -*- coding: utf-8 -*-
 import streamlit as st
 import os
 import base64
@@ -54,7 +54,8 @@ if page == "landing":
             html = html.replace('src="logo.png"', f'src="data:image/png;base64,{logo_b64}"')
 
         app_base = "https://data-lie-detector-icjvsdmt7y7zystrxhqy5r.streamlit.app"
-        html = re.sub(r'href="/app[^"]*"', lambda m: f'href="{app_base}/?page=app" target="_top" onclick="window.open(\'{app_base}/?page=app\', \'_top\'); return false;"', html)
+        # Using double quotes escaped for the f-string inside the generated file
+        html = re.sub(r'href="/app[^"]*"', lambda m: f'href="{app_base}/?page=app" target="_top" onclick="window.open(\"{app_base}/?page=app\", \"_top\"); return false;"', html)
         
         overrides = "<style>.feature-card, .step, .price-card { opacity: 1 !important; transform: none !important; } html, body { background: #06060f !important; overflow-y: auto !important; }</style>"
         html = html.replace("</head>", f"{overrides}</head>")
@@ -66,7 +67,6 @@ if page == "landing":
 
 app_content = get_content('app.py')
 
-# Clean app.py content (remove its own set_page_config if needed, but the current app.py has it commented out)
 with open('streamlit_app.py', 'w', encoding='utf-8') as f:
     f.write(header + '\n' + app_content)
 print("Merge complete!")

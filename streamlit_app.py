@@ -47,7 +47,8 @@ if page == "landing":
             html = html.replace('src="logo.png"', f'src="data:image/png;base64,{logo_b64}"')
 
         app_base = "https://data-lie-detector-icjvsdmt7y7zystrxhqy5r.streamlit.app"
-        html = re.sub(r'href="/app[^"]*"', lambda m: f'href="{app_base}/?page=app" target="_top" onclick="window.open('{app_base}/?page=app', '_top'); return false;"', html)
+        # Using double quotes escaped for the f-string inside the generated file
+        html = re.sub(r'href="/app[^"]*"', lambda m: f'href="{app_base}/?page=app" target="_top" onclick="window.open(\"{app_base}/?page=app\", \"_top\"); return false;"', html)
         
         overrides = "<style>.feature-card, .step, .price-card { opacity: 1 !important; transform: none !important; } html, body { background: #06060f !important; overflow-y: auto !important; }</style>"
         html = html.replace("</head>", f"{overrides}</head>")
