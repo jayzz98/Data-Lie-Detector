@@ -97,49 +97,37 @@ def show_landing_page():
     animation_fix = """
     <script>
     function forceShow() {
+        console.log("Force showing elements...");
         document.querySelectorAll('.feature-card, .step, .price-card').forEach(function(el) {
             el.style.opacity = '1';
             el.style.transform = 'translateY(0) scale(1)';
             el.classList.add('animate-in');
         });
     }
-    // In an iframe, we need to ensure the observer works on the iframe's window
-    window.addEventListener("load", function() {
-        setTimeout(forceShow, 3000); // Heavy fallback
-    });
+    document.addEventListener("DOMContentLoaded", forceShow);
+    window.addEventListener("load", forceShow);
+    setTimeout(forceShow, 500);
+    setTimeout(forceShow, 2000);
     </script>
     """
     
-    # 7. Merge HTML and CSS
-    full_html = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <style>
-            {css_content}
-            /* Ensure the body fills the iframe */
-            html, body {{ margin: 0; padding: 0; width: 100%; height: 100%; overflow-x: hidden; }}
-        </style>
-    </head>
-    <body>
-        {html_content}
-        {animation_fix}
-    </body>
-    </html>
-    """
+    # 7. Merge HTML and CSS correctly
+    # Strip external CSS link and inject our local CSS
+    full_html = html_content.replace(
+        '<link rel="stylesheet" href="style.css?v=2">',
+        f'<style>{css_content}</style>'
+    )
     
-    # Remove the external CSS link from html_content if it exists
-    full_html = full_html.replace('<link rel="stylesheet" href="style.css?v=2">', '')
+    # Inject animation fix before closing body
+    if '</body>' in full_html:
+        full_html = full_html.replace('</body>', f'{animation_fix}</body>')
+    else:
+        full_html += animation_fix
 
-    # 8. Render using a scrolling iframe that fills the screen
+    # 8. Render using components.html with a dynamic height if possible, or large fixed
     import streamlit.components.v1 as components
-    
-    # The height here is the VIEWPORT height. We want it to be large enough to be usable.
-    # Streamlit components are usually capped, but we can set a large height.
-    components.html(full_html, height=1200, scrolling=True)
-
+    # Use a very large height to ensure no scrollbars on the iframe
+    components.html(full_html, height=8000, scrolling=False)
 
 
 
