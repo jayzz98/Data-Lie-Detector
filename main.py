@@ -34,7 +34,7 @@ async def get_app(request: Request):
     # Use the configured Streamlit URL from environment
     # If the user has only one tunnel, they might need a separate one for the app
     # or point this to a different port if their tunnel supports it.
-    public_app_url = "https://conferences-catering-efficiently-freedom.trycloudflare.com"
+    public_app_url = "https://data-lie-detector-icjvsdmt7y7zystrxhqy5r.streamlit.app/"
     return RedirectResponse(url=public_app_url)
 
 # Serve the static files for the landing page
