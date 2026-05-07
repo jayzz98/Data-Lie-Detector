@@ -94,10 +94,10 @@ def show_landing_page():
     html_content = html_content.replace('href="/app?plan=yearly"', f'href="{app_url}&plan=yearly"')
 
     # 6. Final Polish & Animation Fallback
-    # In Streamlit's iframe, IntersectionObserver can be flaky. We add a script to force trigger animations.
     animation_fix = """
     <script>
     function forceShow() {
+        console.log("Force showing elements...");
         document.querySelectorAll('.feature-card, .step, .price-card').forEach(function(el) {
             el.style.opacity = '1';
             el.style.transform = 'translateY(0) scale(1)';
@@ -107,36 +107,28 @@ def show_landing_page():
     document.addEventListener("DOMContentLoaded", forceShow);
     window.addEventListener("load", forceShow);
     setTimeout(forceShow, 500);
-    setTimeout(forceShow, 1500);
-    setTimeout(forceShow, 3000);
+    setTimeout(forceShow, 2000);
     </script>
     """
     
-    # 7. Inject Styles and Scripts
-    full_html = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <style>{css_content}</style>
-    </head>
-    <body>
-        <svg width="0" height="0" style="position: absolute;">
-            <defs>
-                <linearGradient id="icon-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#ff6bcb" />
-                    <stop offset="100%" stop-color="#7b2ff7" />
-                </linearGradient>
-            </defs>
-        </svg>
-        {html_content}
-        {animation_fix}
-    </body>
-    </html>
-    """
+    # 7. Merge HTML and CSS correctly
+    # Strip external CSS link and inject our local CSS
+    full_html = html_content.replace(
+        '<link rel="stylesheet" href="style.css?v=2">',
+        f'<style>{css_content}</style>'
+    )
+    
+    # Inject animation fix before closing body
+    if '</body>' in full_html:
+        full_html = full_html.replace('</body>', f'{animation_fix}</body>')
+    else:
+        full_html += animation_fix
 
-    # 8. Render using components.html for better iframe control and height
+    # 8. Render using components.html with a dynamic height if possible, or large fixed
     import streamlit.components.v1 as components
-    components.html(full_html, height=5000, scrolling=False)
+    # Use a very large height to ensure no scrollbars on the iframe
+    components.html(full_html, height=8000, scrolling=False)
+
 
 
 
