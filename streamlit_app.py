@@ -2,9 +2,10 @@
 import streamlit as st
 import os
 import base64
+import re
 import streamlit.components.v1 as components
 
-# 1. Compatibility Layer for Query Params
+# 1. Compatibility Layer
 def get_params():
     try:
         return st.query_params
@@ -13,7 +14,7 @@ def get_params():
 
 # 2. Page Config
 st.set_page_config(
-    page_title="Data Lie Detector — Decision Safety AI",
+    page_title="Data Lie Detector",
     page_icon="🕵️",
     layout="wide",
 )
@@ -21,7 +22,6 @@ st.set_page_config(
 params = get_params()
 page = "landing"
 if "page" in params:
-    # Handle both new st.query_params (string) and old experimental (list)
     val = params["page"]
     page = val[0] if isinstance(val, list) else val
 elif any(k in params for k in ["login_email", "code", "login", "plan", "state"]):
@@ -31,7 +31,7 @@ def show_landing_page():
     # CSS RESET
     st.markdown("""<style>
     [data-testid="stHeader"], [data-testid="stFooter"], #MainMenu, .stDeployButton {
-        visibility: hidden !important; height: 0 !important;
+        visibility: hidden !important; height: 0 !important; padding: 0 !important;
     }
     .stApp { background-color: #06060f !important; }
     [data-testid="stAppViewContainer"] { padding: 0 !important; }
@@ -63,14 +63,21 @@ def show_landing_page():
                 logo_b64 = base64.b64encode(f.read()).decode()
             html = html.replace('src="logo.png"', f'src="data:image/png;base64,{logo_b64}"')
 
-        # ── ABSOLUTE REDIRECTS ──
-        # We hardcode the production URL to guarantee target="_top" works.
-        app_url = "https://data-lie-detector-icjvsdmt7y7zystrxhqy5r.streamlit.app"
+        # ── HYPER-ROBUST NAVIGATION ──
+        # 1. Regex replacement for all /app links
+        # 2. Injecting an 'onclick' handler that uses window.open(url, '_top')
+        # This is the industry-standard way to break out of iframes.
+        app_base = "https://data-lie-detector-icjvsdmt7y7zystrxhqy5r.streamlit.app"
         
-        html = html.replace('href="/app"', f'href="{app_url}/?page=app" target="_top"')
-        html = html.replace('href="/app?plan=monthly"', f'href="{app_url}/?page=app&plan=monthly" target="_top"')
-        html = html.replace('href="/app?plan=semi_annual"', f'href="{app_url}/?page=app&plan=semi_annual" target="_top"')
-        html = html.replace('href="/app?plan=yearly"', f'href="{app_url}/?page=app&plan=yearly" target="_top"')
+        def link_replacer(match):
+            original_href = match.group(1)
+            new_url = f"{app_base}/?page=app"
+            if "plan=" in original_href:
+                plan = re.search(r"plan=([^&\s\"']*)", original_href).group(1)
+                new_url += f"&plan={plan}"
+            return f'href="{new_url}" target="_top" onclick="window.open(\'{new_url}\', \'_top\'); return false;"'
+
+        html = re.sub(r'href="/app[^"]*"', link_replacer, html)
 
         # Inject Final Fixes
         overrides = """
