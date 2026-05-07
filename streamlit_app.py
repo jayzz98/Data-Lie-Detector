@@ -4,45 +4,25 @@ import os
 import base64
 import streamlit.components.v1 as components
 
-# 1. Page Config (Must be first)
+# 1. Page Config
 st.set_page_config(
-    page_title="Data Lie Detector — Decision Safety AI",
+    page_title="Data Lie Detector",
     page_icon="🕵️",
     layout="wide",
 )
 
-# 2. Routing Logic
+# 2. Routing
 query_params = st.query_params
 page = query_params.get("page", "landing")
-
-# Auto-route triggers
 if any(k in query_params for k in ["login_email", "code", "login", "plan", "state"]):
     page = "app"
 
-# 3. Helper Functions
-def get_file_content(path):
-    if os.path.exists(path):
-        with open(path, "r", encoding="utf-8") as f:
-            return f.read()
-    return ""
-
-def get_base64(path):
-    if os.path.exists(path):
-        with open(path, "rb") as f:
-            return base64.b64encode(f.read()).decode()
-    return ""
-
-# 4. Show Landing Page
 def show_landing_page():
-    # Targeted CSS Overrides (Only hide UI chrome)
+    # ── NUCLEAR RESET (Safe & Clean) ──
     st.markdown("""<style>
-    header, footer, [data-testid="stHeader"], [data-testid="stFooter"],
-    [data-testid="stToolbar"], [data-testid="stDecoration"],
-    #MainMenu, .stDeployButton, [data-testid="collapsedControl"] {
+    [data-testid="stHeader"], [data-testid="stFooter"], #MainMenu, .stDeployButton {
         visibility: hidden !important;
         height: 0 !important;
-        padding: 0 !important;
-        margin: 0 !important;
     }
     .stApp { background-color: #06060f !important; }
     [data-testid="stAppViewContainer"] { padding: 0 !important; }
@@ -58,64 +38,49 @@ def show_landing_page():
     }
     </style>""", unsafe_allow_html=True)
 
+    # ── ASSETS ──
     base_dir = os.path.dirname(os.path.abspath(__file__))
     landing_dir = os.path.join(base_dir, "landing")
     
-    html = get_file_content(os.path.join(landing_dir, "index.html"))
-    if not html:
-        st.error("Landing page assets missing.")
-        return
+    try:
+        with open(os.path.join(landing_dir, "index.html"), "r", encoding="utf-8") as f:
+            html = f.read()
+        
+        # Inline Assets
+        if os.path.exists(os.path.join(landing_dir, "style.css")):
+            with open(os.path.join(landing_dir, "style.css"), "r", encoding="utf-8") as f:
+                css = f.read()
+            html = html.replace('<link rel="stylesheet" href="style.css?v=2">', f'<style>{css}</style>')
+        
+        logo_path = os.path.join(landing_dir, "logo.png")
+        if os.path.exists(logo_path):
+            with open(logo_path, "rb") as f:
+                logo_b64 = base64.b64encode(f.read()).decode()
+            html = html.replace('src="logo.png"', f'src="data:image/png;base64,{logo_b64}"')
 
-    # Inline Assets
-    css = get_file_content(os.path.join(landing_dir, "style.css"))
-    if css:
-        html = html.replace('<link rel="stylesheet" href="style.css?v=2">', f'<style>{css}</style>')
+        # ── LINK REPLACEMENT (The Absolute Best Method for Streamlit Cloud) ──
+        # Using target="_top" with an absolute path "/" ensures the browser 
+        # navigates the parent window to the correct app route.
+        html = html.replace('href="/app"', 'href="/?page=app" target="_top"')
+        html = html.replace('href="/app?plan=monthly"', 'href="/?page=app&plan=monthly" target="_top"')
+        html = html.replace('href="/app?plan=semi_annual"', 'href="/?page=app&plan=semi_annual" target="_top"')
+        html = html.replace('href="/app?plan=yearly"', 'href="/?page=app&plan=yearly" target="_top"')
 
-    logo_b64 = get_base64(os.path.join(landing_dir, "logo.png"))
-    if logo_b64:
-        html = html.replace('src="logo.png"', f'src="data:image/png;base64,{logo_b64}"')
+        # Iframe Visual Fixes
+        overrides = """
+        <style>
+        .feature-card, .step, .price-card { opacity: 1 !important; transform: none !important; }
+        .feature-card.animate-in, .step.animate-in, .price-card.animate-in { opacity: 1 !important; transform: none !important; }
+        html, body { background: #06060f !important; overflow-y: auto !important; height: auto !important; min-height: 100vh !important; }
+        .navbar { position: fixed !important; }
+        </style>
+        """
+        html = html.replace("</head>", f"{overrides}</head>")
 
-    # ── ROBUST LINK HANDLING ──
-    # We use a Javascript bridge to ensure the parent window navigates correctly.
-    # This bypasses iframe sandbox restrictions that sometimes block target="_top".
-    link_fix_script = """
-    <script>
-    document.addEventListener('click', function(e) {
-        var target = e.target.closest('a');
-        if (target && target.getAttribute('href')) {
-            var href = target.getAttribute('href');
-            if (href.startsWith('/app') || href.startsWith('?page=app')) {
-                e.preventDefault();
-                var newUrl = window.parent.location.pathname + '?page=app';
-                if (href.includes('plan=')) {
-                    var plan = href.split('plan=')[1].split('&')[0];
-                    newUrl += '&plan=' + plan;
-                }
-                window.parent.location.href = newUrl;
-            }
-        }
-    }, true);
-    </script>
-    """
-    
-    # Inject Final Overrides and the Link Fix Script
-    overrides = f"""
-    <style>
-    .feature-card, .step, .price-card {{ opacity: 1 !important; transform: none !important; }}
-    html, body {{ 
-        background: #06060f !important; 
-        overflow-y: auto !important; 
-        height: auto !important; 
-        min-height: 100vh !important; 
-    }}
-    .navbar {{ position: fixed !important; }}
-    </style>
-    {link_fix_script}
-    """
-    html = html.replace("</head>", f"{overrides}</head>")
+        components.html(html, height=2000, scrolling=True)
 
-    # Render
-    components.html(html, height=2000, scrolling=True)
+    except Exception as e:
+        st.error(f"Error: {e}")
 
 def show_dashboard():
     app_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "app.py")
