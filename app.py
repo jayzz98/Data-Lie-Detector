@@ -37,7 +37,7 @@ from utils.auth import (
 # ═══════════════════════════════════════════════════════════════════════
 # st.set_page_config(
 #     page_title="Data Lie Detector",
-#     page_icon="assets/logo.png",
+#     page_icon="landing/logo.png" if os.path.exists("landing/logo.png") else "🕵️",
 #     layout="wide",
 #     initial_sidebar_state="expanded"
 # )
