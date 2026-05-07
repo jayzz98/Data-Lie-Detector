@@ -35,12 +35,32 @@ from utils.auth import (
 # ═══════════════════════════════════════════════════════════════════════
 # PAGE CONFIG & PREMIUM CSS
 # ═══════════════════════════════════════════════════════════════════════
-st.set_page_config(
-    page_title="Data Lie Detector",
-    page_icon="assets/logo.png",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+# st.set_page_config(
+#     page_title="Data Lie Detector",
+#     page_icon="assets/logo.png",
+#     layout="wide",
+#     initial_sidebar_state="expanded"
+# )
+
+# ── QUERY PARAM COMPATIBILITY WRAPPER ──
+def get_all_params():
+    try:
+        return st.query_params
+    except AttributeError:
+        return st.experimental_get_query_params()
+
+def get_param(key, default=None):
+    p = get_all_params()
+    if key in p:
+        val = p[key]
+        return val[0] if isinstance(val, list) else val
+    return default
+
+def clear_params():
+    try:
+        st.query_params.clear()
+    except:
+        st.experimental_set_query_params()
 
 
 
@@ -343,10 +363,10 @@ if "counted_files" not in st.session_state:
 # ═══════════════════════════════════════════════════════════════════════
 # CAPTURE PLAN PARAMETER (from landing page "Buy Now" links)
 # ═══════════════════════════════════════════════════════════════════════
-if "plan" in st.query_params:
-    st.session_state.pending_plan = st.query_params["plan"]
-    st.query_params.clear()
-    st.query_params["page"] = "app"
+params = get_all_params()
+if "plan" in params:
+    st.session_state.pending_plan = get_param("plan")
+    clear_params()
     st.rerun()
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -354,17 +374,17 @@ if "plan" in st.query_params:
 # ═══════════════════════════════════════════════════════════════════════
 if not st.session_state.user_email:
     # ── 1. Handle OAuth Callback (user is returning from Google/Microsoft) ──
-    if "code" in st.query_params and "state" in st.query_params:
-        code = st.query_params["code"]
-        state = st.query_params["state"]
+    params = get_all_params()
+    if "code" in params and "state" in params:
+        code = get_param("code")
+        state = get_param("state")
         email = None
         if state == "google":
             email = verify_google_code(code)
         elif state == "microsoft":
             email = verify_microsoft_code(code)
 
-        st.query_params.clear()
-        st.query_params["page"] = "app"
+        clear_params()
         if email:
             user = login_user(email)
             st.session_state.user_email = user["email"]
@@ -377,10 +397,9 @@ if not st.session_state.user_email:
     microsoft_url = get_microsoft_login_url()
 
     # If credentials are missing, fall back to a simulated form
-    if "login" in st.query_params and not has_oauth_credentials():
-        provider = st.query_params["login"].capitalize()
-        st.query_params.clear()
-        st.query_params["page"] = "app"
+    if "login" in params and not has_oauth_credentials():
+        provider = get_param("login").capitalize()
+        clear_params()
         st.session_state.oauth_provider = provider
         st.rerun()
 
@@ -429,11 +448,9 @@ border: 1px solid rgba(123,47,247,0.3); border-radius: 16px; padding: 2.5rem; te
     microsoft_href = microsoft_url if microsoft_url else "?page=app&login=microsoft"
 
     # ── 3. Handle Email/Guest Login via URL ──
-    if "login_email" in st.query_params:
-        email = st.query_params["login_email"]
-        # Clear the param so it doesn't loop
-        st.query_params.clear()
-        st.query_params["page"] = "app"
+    if "login_email" in params:
+        email = get_param("login_email")
+        clear_params()
         user = login_user(email)
         st.session_state.user_email = user["email"]
         st.rerun()
