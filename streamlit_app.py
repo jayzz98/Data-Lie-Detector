@@ -39,97 +39,82 @@ def _load_logo_b64():
 def show_landing_page():
     """Render the full landing page HTML inside Streamlit."""
 
-    # NUCLEAR RESET: Force the landing page to be the ONLY thing on the screen.
-    # This kills all Streamlit margins, headers, and sidebars completely.
+    # 1. Kill EVERYTHING Streamlit-related to allow for a true full-screen landing page.
     st.markdown("""<style>
-    /* 1. Kill EVERYTHING Streamlit-related */
     header, [data-testid="stFooter"], [data-testid="stHeader"], [data-testid="stToolbar"], 
     [data-testid="stDecoration"], #MainMenu, [data-testid="stSidebar"], 
     [data-testid="collapsedControl"] {
         display:none!important; visibility:hidden!important; height:0!important; width:0!important;
     }
-    
-    /* 2. Force the App container to be a transparent full-screen box */
-    .stApp { 
-        margin:0!important; padding:0!important; 
-        background: #06060f !important;
-    }
-    
-    /* 3. Force the main content area to start at (0,0) and take 100% space */
-    [data-testid="stAppViewContainer"] {
-        padding: 0!important;
-        margin: 0!important;
-    }
-    
-    [data-testid="stAppViewBlockContainer"] {
-        padding: 0!important;
-        margin: 0!important;
-        max-width: none!important;
-        width: 100vw!important;
-        height: 100vh!important;
-    }
-    
-    /* Remove any Streamlit-enforced padding at the top */
-    .main .block-container {
-        padding-top: 0 !important;
-        padding-bottom: 0 !important;
-        margin: 0 !important;
-    }
-    
-    /* 4. Ensure root font-size is exactly 16px */
+    .stApp { margin:0!important; padding:0!important; background: #06060f !important; }
+    [data-testid="stAppViewContainer"] { padding: 0!important; margin: 0!important; }
+    [data-testid="stAppViewBlockContainer"] { padding: 0!important; margin: 0!important; max-width: none!important; width: 100vw!important; }
+    .main .block-container { padding-top: 0 !important; padding-bottom: 0 !important; margin: 0 !important; }
     html { font-size: 16px !important; }
-    
-    /* 5. Prevent horizontal scrolling issues */
-    html, body {
-        overflow-x: hidden !important;
-        background: #06060f !important;
-    }
+    html, body { overflow-x: hidden !important; background: #06060f !important; }
     </style>""", unsafe_allow_html=True)
 
-    logo_b64 = _load_logo_b64()
+    # 2. Prepare paths
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    landing_dir = os.path.join(base_dir, "landing")
+    html_path = os.path.join(landing_dir, "index.html")
+    css_path = os.path.join(landing_dir, "style.css")
 
-    # Load CSS
-    css_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "landing", "style.css")
+    # 3. Load HTML and CSS
+    if not os.path.exists(html_path):
+        st.error("Landing page index.html not found.")
+        return
+    
+    with open(html_path, "r", encoding="utf-8") as f:
+        html_content = f.read()
+    
     css_content = ""
     if os.path.exists(css_path):
         with open(css_path, "r", encoding="utf-8") as f:
             css_content = f.read()
 
-    # Load HTML
-    html_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "landing", "index.html")
-    html_content = ""
-    if os.path.exists(html_path):
-        with open(html_path, "r", encoding="utf-8") as f:
-            html_content = f.read()
+    # 4. Inline Images (Logo, Favicon, and any other assets)
+    def get_b64(rel_path):
+        full_path = os.path.join(landing_dir, rel_path)
+        if os.path.exists(full_path):
+            with open(full_path, "rb") as f:
+                return base64.b64encode(f.read()).decode()
+        return None
 
-    # Inline the CSS (replace the <link> tag)
-    html_content = html_content.replace(
-        '<link rel="stylesheet" href="style.css?v=2">',
-        f'<style>{css_content}</style>'
-    )
-
-    # Inline the logo as base64
+    logo_b64 = get_b64("logo.png")
     if logo_b64:
-        html_content = html_content.replace(
-            'src="logo.png"',
-            f'src="data:image/png;base64,{logo_b64}"'
-        )
-        html_content = html_content.replace(
-            '<link rel="icon" href="favicon.ico">',
-            f'<link rel="icon" href="data:image/png;base64,{logo_b64}">'
-        )
+        html_content = html_content.replace('src="logo.png"', f'src="data:image/png;base64,{logo_b64}"')
+        html_content = html_content.replace('href="favicon.ico"', f'href="data:image/png;base64,{logo_b64}"')
 
-    # Fix all /app links → absolute URL with ?page=app
-    # We must use the absolute URL because target="_top" resolves relative URLs against the iframe's base URL!
+    # 5. Route Dashboard Links
     app_url = "https://data-lie-detector-icjvsdmt7y7zystrxhqy5r.streamlit.app/?page=app"
     html_content = html_content.replace('href="/app"', f'href="{app_url}"')
     html_content = html_content.replace('href="/app?plan=monthly"', f'href="{app_url}&plan=monthly"')
     html_content = html_content.replace('href="/app?plan=semi_annual"', f'href="{app_url}&plan=semi_annual"')
     html_content = html_content.replace('href="/app?plan=yearly"', f'href="{app_url}&plan=yearly"')
 
-    # Final "Perfect Visuals" Fix:
-    # 1. Inject the SVG Gradient definition separately via st.markdown
-    # This prevents the st.html sanitizer from stripping it.
+    # 6. Final Polish & Animation Fallback
+    # In Streamlit's iframe, IntersectionObserver can be flaky. We add a script to force trigger animations.
+    animation_fix = """
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        setTimeout(function() {
+            document.querySelectorAll('.feature-card, .step, .price-card').forEach(function(el) {
+                el.classList.add('animate-in');
+            });
+        }, 1500); // Fallback to show all after 1.5s
+    });
+    </script>
+    """
+    
+    # 7. Inject Styles and Scripts
+    full_html = f"""
+    <style>{css_content}</style>
+    {html_content}
+    {animation_fix}
+    """
+
+    # 8. Render
     st.markdown("""
     <svg width="0" height="0" style="position: absolute;">
         <defs>
@@ -140,12 +125,9 @@ def show_landing_page():
         </defs>
     </svg>
     """, unsafe_allow_html=True)
+    
+    st.html(full_html)
 
-    # 2. Use st.html for the main content. This ensures:
-    # - Perfect Layout (No squashing or markdown bugs)
-    # - Working Navigation (target="_top" works in the same tab)
-    # - CSS is applied correctly
-    st.html(html_content)
 
 
 def show_dashboard():

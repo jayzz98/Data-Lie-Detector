@@ -188,38 +188,37 @@ body {
 
 .hero-glow {
     position: absolute;
-    width: 600px;
-    height: 600px;
-    background: radial-gradient(circle, rgba(123, 47, 247, 0.15), transparent 70%);
-    top: -100px;
+    width: 800px;
+    height: 800px;
+    background: radial-gradient(circle, rgba(123, 47, 247, 0.18), transparent 70%);
+    top: -200px;
     left: 50%;
     transform: translateX(-50%);
     pointer-events: none;
-    animation: pulse-glow 6s ease-in-out infinite;
+    filter: blur(80px);
+    animation: pulse-glow 8s ease-in-out infinite;
 }
 
 .hero-glow-2 {
     position: absolute;
-    width: 400px;
-    height: 400px;
-    background: radial-gradient(circle, rgba(0, 210, 255, 0.08), transparent 70%);
-    bottom: 100px;
-    right: -100px;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(0, 210, 255, 0.12), transparent 70%);
+    bottom: 0px;
+    right: -150px;
     pointer-events: none;
-    animation: pulse-glow 8s ease-in-out infinite reverse;
+    filter: blur(60px);
+    animation: pulse-glow 12s ease-in-out infinite reverse;
 }
 
 @keyframes pulse-glow {
-
-    0%,
-    100% {
-        opacity: 0.6;
-        transform: translateX(-50%) scale(1);
+    0%, 100% {
+        opacity: 0.5;
+        transform: translateX(-50%) scale(1) rotate(0deg);
     }
-
     50% {
         opacity: 1;
-        transform: translateX(-50%) scale(1.15);
+        transform: translateX(-50%) scale(1.2) rotate(5deg);
     }
 }
 
@@ -535,10 +534,10 @@ body {
 }
 
 .feature-card:hover {
-    background: rgba(18, 18, 36, 0.8);
-    border-color: rgba(123, 47, 247, 0.25);
-    transform: translateY(-8px);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 40px rgba(123, 47, 247, 0.1) inset;
+    background: rgba(20, 20, 45, 0.95);
+    border-color: rgba(123, 47, 247, 0.4);
+    transform: translateY(-10px) scale(1.02);
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6), 0 0 50px rgba(123, 47, 247, 0.15) inset;
 }
 
 .feature-card:hover::before {
