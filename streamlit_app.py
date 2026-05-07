@@ -4,7 +4,7 @@ import os
 import base64
 import streamlit.components.v1 as components
 
-# 1. Routing
+# 1. Routing logic
 page = st.query_params.get("page", "landing")
 if any(k in st.query_params for k in ["login_email", "code", "login", "plan"]):
     page = "app"
@@ -18,11 +18,13 @@ st.set_page_config(
 )
 
 def show_landing_page():
-    # Hide Streamlit UI elements for the landing page
+    # Target styles for Streamlit container to make the landing page full-width
     st.markdown("""<style>
-    header, [data-testid="stFooter"], [data-testid="stHeader"], [data-testid="stToolbar"] { display:none!important; }
+    header, [data-testid="stFooter"], [data-testid="stHeader"], [data-testid="stToolbar"] { display:none!important; visibility:hidden!important; }
     .stApp { margin:0!important; padding:0!important; background: #06060f !important; }
-    iframe { border: none !important; }
+    [data-testid="stAppViewContainer"] { padding: 0!important; }
+    [data-testid="stAppViewBlockContainer"] { padding: 0!important; max-width: none!important; }
+    iframe { border: none !important; margin: 0 !important; padding: 0 !important; }
     </style>""", unsafe_allow_html=True)
 
     base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -50,16 +52,40 @@ def show_landing_page():
     html = html.replace('href="/app?plan=semi_annual"', f'href="{app_url}&plan=semi_annual"')
     html = html.replace('href="/app?plan=yearly"', f'href="{app_url}&plan=yearly"')
 
-    # Render - Huge height to ensure all content is visible
-    components.html(html, height=10000, scrolling=False)
+    # Inject Visibility Script into the HTML content itself to bypass Cross-Origin limits
+    visibility_script = """
+    <script>
+    function forceShow() {
+        document.querySelectorAll('.feature-card, .step, .price-card').forEach(function(el) {
+            el.style.opacity = '1';
+            el.style.transform = 'translateY(0)';
+            el.classList.add('animate-in');
+        });
+    }
+    window.addEventListener("load", forceShow);
+    setTimeout(forceShow, 500);
+    setTimeout(forceShow, 1500);
+    </script>
+    """
+    if "</body>" in html:
+        html = html.replace("</body>", f"{visibility_script}</body>")
+    else:
+        html += visibility_script
+
+    # Render with a huge height to prevent scrollbars and ensure all content is loaded
+    components.html(html, height=8000, scrolling=False)
 
 def show_dashboard():
     app_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "app.py")
+    if not os.path.exists(app_path):
+        st.error("Dashboard app.py not found.")
+        return
     with open(app_path, "r", encoding="utf-8") as f:
         code = f.read()
     # Remove conflicting set_page_config
     code = code.replace("st.set_page_config", "# st.set_page_config")
-    exec(code, {"__name__": "__main__", "__file__": app_path})
+    # Clean execution environment
+    exec(code, {"__name__": "__main__", "__file__": app_path, "st": st})
 
 if page == "app":
     show_dashboard()
