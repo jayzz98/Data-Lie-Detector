@@ -9,7 +9,7 @@
         content="Upload data. Detect issues. Score trust. Make safe decisions. The AI-powered data quality engine that tells you if your data is lying.">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
         rel="stylesheet">
-    <link rel="icon" href="favicon.ico">
+    <link rel="stylesheet" href="style.css?v=2">
 </head>
 
 <body>
@@ -47,13 +47,13 @@
             <p class="hero-sub">Upload any dataset. Get instant trust scores, anomaly detection, suspicious pattern
                 analysis, and AI-powered risk assessment — in seconds.</p>
             <div class="hero-actions">
-                <a href="/app" class="btn btn-primary btn-lg">
+                <a href="/app" class="btn btn-primary">
                     <span>Analyze Your Data Free</span>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M5 12h14M12 5l7 7-7 7" />
                     </svg>
                 </a>
-                <a href="#how-it-works" class="btn btn-ghost btn-lg">See How It Works</a>
+                <a href="#how-it-works" class="btn btn-ghost">See How It Works</a>
             </div>
             <div class="hero-stats">
                 <div class="stat"><span class="stat-num">15+</span><span class="stat-label">Analysis Modules</span>
@@ -329,7 +329,7 @@
                 </div>
             </div>
             <div class="footer-bottom">
-                <p>© 2026 Data Lie Detector. Built with 🔥</p>
+                <p>© 2025 Data Lie Detector. Built with 🔥</p>
             </div>
         </div>
     </footer>
@@ -347,18 +347,35 @@
         });
 
         // Intersection Observer for animations
+        const observerOptions = {
+            threshold: 0.15,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
                     entry.target.classList.add('animate-in');
                 }
             });
-        }, { threshold: 0.1 });
+        }, observerOptions);
 
         document.querySelectorAll('.feature-card, .step, .price-card').forEach(el => {
             observer.observe(el);
         });
+
+        // Feature card mouse effect
+        document.querySelectorAll('.feature-card').forEach(card => {
+            card.addEventListener('mousemove', e => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                card.style.setProperty('--x', `${x}px`);
+                card.style.setProperty('--y', `${y}px`);
+            });
+        });
     </script>
+
 </body>
 
 </html>
