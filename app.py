@@ -1181,3 +1181,5 @@ else:
         <div style="font-size:0.85rem; color:rgba(240,240,245,0.3); max-width:400px; margin:0 auto; line-height:1.4; position:relative;">Your data stays 100% local — nothing is sent to any server unless you explicitly use AI Insight.</div>
     </div>
     """, unsafe_allow_html=True)
+#   S y n c   T r i g g e r :   0 5 / 0 8 / 2 0 2 6   1 6 : 0 4 : 3 4  
+ 
