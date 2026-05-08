@@ -37,7 +37,8 @@ if page == "landing":
     # Consolidated CSS to remove all margins and gaps between elements
     st.markdown("""
 <style>
-    [data-testid="stHeader"], [data-testid="stFooter"], #MainMenu, .stDeployButton, [data-testid="stToolbar"] { 
+    /* Hide ALL streamlit standard UI */
+    header, footer, [data-testid="stHeader"], [data-testid="stFooter"], #MainMenu, .stDeployButton, [data-testid="stToolbar"], [data-testid="stDecoration"] { 
         visibility: hidden !important; height: 0 !important; display: none !important; 
     }
     [data-testid="stSidebar"], [data-testid="collapsedControl"] { display: none !important; }
@@ -190,7 +191,8 @@ st.markdown("""
     /* ══ GLOBAL ══ */
     .stApp { font-family: 'Inter', -apple-system, sans-serif; }
     html, body, .stApp { background: #06060f !important; overflow-x: hidden !important; }
-    [data-testid="stHeader"], [data-testid="stFooter"], #MainMenu, .stDeployButton, [data-testid="stToolbar"] { 
+    /* Hide ALL streamlit standard UI */
+    header, footer, [data-testid="stHeader"], [data-testid="stFooter"], #MainMenu, .stDeployButton, [data-testid="stToolbar"], [data-testid="stDecoration"] { 
         visibility: hidden !important; 
         height: 0 !important; 
         display: none !important;

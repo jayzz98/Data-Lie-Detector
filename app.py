@@ -1,5 +1,124 @@
 # -*- coding: utf-8 -*-
 import streamlit as st
+import os
+import base64
+import re
+import time
+import pandas as pd
+import streamlit.components.v1 as components
+
+# Compatibility for Query Params
+def get_param(key, default=None):
+    try:
+        p = st.query_params
+        if key in p: return p[key]
+    except:
+        p = st.experimental_get_query_params()
+        if key in p: return p[key][0]
+    return default
+
+def clear_params():
+    try:
+        st.query_params.clear()
+    except:
+        st.experimental_set_query_params()
+
+# Routing logic
+page = get_param("page")
+if not page:
+    page = "app" if st.session_state.get("user_email") else "landing"
+
+auth_triggers = ["login_email", "code", "login", "plan", "state"]
+if any(get_param(k) for k in auth_triggers):
+    page = "app"
+
+if page == "landing":
+    st.set_page_config(page_title="Data Lie Detector", page_icon="🕵️", layout="wide")
+    # Consolidated CSS to remove all margins and gaps between elements
+    st.markdown("""
+<style>
+    /* Hide ALL streamlit standard UI */
+    header, footer, [data-testid="stHeader"], [data-testid="stFooter"], #MainMenu, .stDeployButton, [data-testid="stToolbar"], [data-testid="stDecoration"] { 
+        visibility: hidden !important; height: 0 !important; display: none !important; 
+    }
+    [data-testid="stSidebar"], [data-testid="collapsedControl"] { display: none !important; }
+    .stApp { background-color: #06060f !important; }
+    [data-testid="stAppViewContainer"] { padding: 0 !important; }
+    [data-testid="stAppViewContainer"] > section:nth-child(2) { padding: 0 !important; }
+    .block-container { padding: 0 !important; max-width: 100% !important; margin: 0 !important; }
+    [data-testid="stVerticalBlock"] { gap: 0 !important; }
+    
+    ::-webkit-scrollbar { width: 10px !important; }
+    ::-webkit-scrollbar-track { background: #06060f !important; }
+    ::-webkit-scrollbar-thumb { 
+        background: linear-gradient(180deg, #7b2ff7, #ff6bcb) !important; 
+        border-radius: 10px !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+    
+    landing_dir = os.path.join(os.path.dirname(__file__), "landing")
+    try:
+        with open(os.path.join(landing_dir, "index.html"), "r", encoding="utf-8") as f:
+            html = f.read()
+        if os.path.exists(os.path.join(landing_dir, "style.css")):
+            with open(os.path.join(landing_dir, "style.css"), "r", encoding="utf-8") as f:
+                css = f.read()
+            html = html.replace('<link rel="stylesheet" href="style.css?v=2">', f'<style>{css}</style>')
+        if os.path.exists(os.path.join(landing_dir, "logo.png")):
+            with open(os.path.join(landing_dir, "logo.png"), "rb") as f:
+                logo_b64 = base64.b64encode(f.read()).decode()
+            html = html.replace('src="logo.png"', f'src="data:image/png;base64,{logo_b64}"')
+
+        # ── NATIVE HTML ROUTING ──
+        # Replace hrefs with relative URLs and target="_self" so Streamlit navigates correctly in DOM
+        def repl(m):
+            original = m.group(0)
+            if "plan=" in original:
+                plan = re.search(r'plan=([^&"\']*)', original).group(1)
+                return f'href="?page=app&plan={plan}" target="_self"'
+            return 'href="?page=app" target="_self"'
+            
+        html = re.sub(r'href="/app[^"]*"', repl, html)
+
+        # ── TRUE DYNAMIC PRECISION VIEW ──
+        # Inject the correct Streamlit auto-resize script and overrides
+        overrides = """
+        <style>
+            .feature-card, .step, .price-card { opacity: 1 !important; transform: none !important; }
+            html, body { background: #06060f !important; overflow: hidden !important; margin: 0; padding: 0; }
+            ::-webkit-scrollbar { display: none !important; }
+        </style>
+        <script>
+            function setFrameHeight() {
+                const height = document.documentElement.scrollHeight;
+                window.parent.postMessage({
+                    isStreamlitMessage: true,
+                    type: 'setFrameHeight',
+                    height: height
+                }, '*');
+            }
+            window.addEventListener('load', setFrameHeight);
+            window.addEventListener('resize', setFrameHeight);
+            const observer = new MutationObserver(setFrameHeight);
+            observer.observe(document.body, { childList: true, subtree: true, attributes: true });
+            setTimeout(setFrameHeight, 500);
+            setTimeout(setFrameHeight, 2000);
+        </script>
+        """
+        html = html.replace("</head>", f"{overrides}</head>")
+        
+        # Ensure links work correctly
+        html = html.replace('target="_blank"', 'target="_self"')
+
+        # Use components.html with auto-resizing enabled via the correct script
+        components.html(html, height=4500, scrolling=True)
+        st.stop()
+    except Exception as e:
+        st.error(f"Landing Error: {e}")
+
+# -*- coding: utf-8 -*-
+import streamlit as st
 import pandas as pd
 import base64
 import os
@@ -72,7 +191,8 @@ st.markdown("""
     /* ══ GLOBAL ══ */
     .stApp { font-family: 'Inter', -apple-system, sans-serif; }
     html, body, .stApp { background: #06060f !important; overflow-x: hidden !important; }
-    [data-testid="stHeader"], [data-testid="stFooter"], #MainMenu, .stDeployButton, [data-testid="stToolbar"] { 
+    /* Hide ALL streamlit standard UI */
+    header, footer, [data-testid="stHeader"], [data-testid="stFooter"], #MainMenu, .stDeployButton, [data-testid="stToolbar"], [data-testid="stDecoration"] { 
         visibility: hidden !important; 
         height: 0 !important; 
         display: none !important;
