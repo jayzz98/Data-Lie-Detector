@@ -50,18 +50,32 @@ if page == "landing":
     # Nuclear CSS for landing page
     st.markdown("""
 <style>
-    /* Hide ALL streamlit standard UI */
+    /* Nuclear Layout Reset for Landing Page */
+    [data-testid="stAppViewContainer"], 
+    [data-testid="stAppViewContainer"] > section, 
+    .main, 
+    .stApp,
+    .block-container {
+        overflow: visible !important;
+        height: auto !important;
+        min-height: 100vh !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    
+    /* Force Iframe to be massive and let the parent scroll it */
+    iframe {
+        width: 100vw !important;
+        height: 5000px !important;
+        border: none !important;
+        overflow: hidden !important;
+    }
+
     header, footer, [data-testid="stHeader"], [data-testid="stFooter"], #MainMenu, .stDeployButton, [data-testid="stToolbar"], [data-testid="stDecoration"] { 
         visibility: hidden !important; height: 0 !important; display: none !important; 
     }
     [data-testid="stSidebar"], [data-testid="collapsedControl"] { display: none !important; }
     .stApp { background-color: #06060f !important; }
-    [data-testid="stAppViewContainer"] { padding: 0 !important; }
-    .block-container { padding: 0 !important; max-width: 100% !important; margin: 0 !important; }
-    
-    /* Force parent scrolling */
-    [data-testid="stAppViewContainer"], .main, .stApp { overflow: visible !important; height: auto !important; }
-    iframe { width: 100vw !important; height: 4500px !important; border: none; }
     
     ::-webkit-scrollbar { width: 8px !important; }
     ::-webkit-scrollbar-track { background: #06060f !important; }
@@ -109,7 +123,7 @@ if page == "landing":
         """
         html = html.replace("</head>", f"{overrides}</head>")
 
-        components.html(html, height=4500, scrolling=False)
+        components.html(html, height=5000, scrolling=False)
         st.stop()
     except Exception as e:
         st.error(f"Landing Error: {e}")
