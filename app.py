@@ -37,16 +37,23 @@ if page == "landing":
     # Consolidated CSS to remove all margins and gaps between elements
     st.markdown("""
 <style>
-    /* Hide ALL streamlit standard UI */
+    /* Ultimate Full App Override */
+    iframe {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw !important;
+        height: 100vh !important;
+        border: none;
+        z-index: 999999;
+    }
     header, footer, [data-testid="stHeader"], [data-testid="stFooter"], #MainMenu, .stDeployButton, [data-testid="stToolbar"], [data-testid="stDecoration"] { 
         visibility: hidden !important; height: 0 !important; display: none !important; 
     }
     [data-testid="stSidebar"], [data-testid="collapsedControl"] { display: none !important; }
     .stApp { background-color: #06060f !important; }
     [data-testid="stAppViewContainer"] { padding: 0 !important; }
-    [data-testid="stAppViewContainer"] > section:nth-child(2) { padding: 0 !important; }
     .block-container { padding: 0 !important; max-width: 100% !important; margin: 0 !important; }
-    [data-testid="stVerticalBlock"] { gap: 0 !important; }
     
     ::-webkit-scrollbar { width: 10px !important; }
     ::-webkit-scrollbar-track { background: #06060f !important; }
@@ -112,7 +119,7 @@ if page == "landing":
         html = html.replace('target="_blank"', 'target="_self"')
 
         # Use components.html with auto-resizing enabled via the correct script
-        components.html(html, height=4500, scrolling=True)
+        components.html(html, height=1200, scrolling=True)
         st.stop()
     except Exception as e:
         st.error(f"Landing Error: {e}")
