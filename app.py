@@ -35,12 +35,12 @@ from utils.auth import (
 # ═══════════════════════════════════════════════════════════════════════
 # PAGE CONFIG & PREMIUM CSS
 # ═══════════════════════════════════════════════════════════════════════
-# st.set_page_config(
-#     page_title="Data Lie Detector",
-#     page_icon="landing/logo.png" if os.path.exists("landing/logo.png") else "🕵️",
-#     layout="wide",
-#     initial_sidebar_state="expanded"
-# )
+st.set_page_config(
+    page_title="Data Lie Detector",
+    page_icon="landing/logo.png" if os.path.exists("landing/logo.png") else "🕵️",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
 # ── QUERY PARAM COMPATIBILITY WRAPPER ──
 def get_all_params():
@@ -71,14 +71,19 @@ st.markdown("""
 
     /* ══ GLOBAL ══ */
     .stApp { font-family: 'Inter', -apple-system, sans-serif; }
-    html, body, .stApp { background: #06060f !important; }
-    #MainMenu, footer, header, [data-testid="stToolbar"] { visibility:hidden!important; height:0!important; }
-    .stDeployButton { display:none!important; }
-    [data-testid="stHeader"] { background:transparent!important; }
+    html, body, .stApp { background: #06060f !important; overflow-x: hidden !important; }
+    [data-testid="stHeader"], [data-testid="stFooter"], #MainMenu, .stDeployButton, [data-testid="stToolbar"] { 
+        visibility: hidden !important; 
+        height: 0 !important; 
+        display: none !important;
+    }
+    [data-testid="stAppViewContainer"] { padding: 0 !important; }
+    [data-testid="stAppViewContainer"] > section:nth-child(2) { padding: 0 !important; }
     ::-webkit-scrollbar { width:5px; }
     ::-webkit-scrollbar-track { background:transparent; }
     ::-webkit-scrollbar-thumb { background:rgba(123,47,247,0.3); border-radius:10px; }
-    .main .block-container { padding-top: 0.5rem !important; }
+    .main .block-container { padding-top: 1rem !important; padding-bottom: 2rem !important; max-width: 100% !important; }
+    [data-testid="stVerticalBlock"] { gap: 0.5rem !important; }
 
     /* ══ HERO HEADER ══ */
     .hero-header {
@@ -456,7 +461,7 @@ border: 1px solid rgba(123,47,247,0.3); border-radius: 16px; padding: 2.5rem; te
         st.rerun()
 
     # ── 4. Full-Page Login UI ──
-    home_url = os.environ.get("HOME_URL", "?page=landing")
+    home_url = os.environ.get("HOME_URL", "http://localhost:8000")
     
     css_code = """
 <style>

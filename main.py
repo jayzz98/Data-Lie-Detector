@@ -18,7 +18,7 @@ async def startup_event():
     print("Starting Streamlit background engine...")
     subprocess.Popen(
         [sys.executable, "-m", "streamlit", "run", "app.py", 
-         "--server.port", "8502", 
+         "--server.port", "8501", 
          "--server.address", "0.0.0.0",
          "--server.headless", "true"],
         cwd=project_root
@@ -31,14 +31,12 @@ async def get_landing():
 
 @app.get("/app")
 async def get_app(request: Request):
-    # Use the configured Streamlit URL from environment
-    # If the user has only one tunnel, they might need a separate one for the app
-    # or point this to a different port if their tunnel supports it.
-    public_app_url = "https://data-lie-detector-icjvsdmt7y7zystrxhqy5r.streamlit.app/"
+    # Use localhost for local development
+    local_app_url = "http://localhost:8501"
     qs = request.url.query
     if qs:
-        return RedirectResponse(url=f"{public_app_url}?page=app&{qs}")
-    return RedirectResponse(url=f"{public_app_url}?page=app")
+        return RedirectResponse(url=f"{local_app_url}?page=app&{qs}")
+    return RedirectResponse(url=f"{local_app_url}?page=app")
 
 # Serve the static files for the landing page
 app.mount("/", StaticFiles(directory=landing_dir, html=True), name="landing")

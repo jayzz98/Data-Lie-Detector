@@ -34,7 +34,27 @@ if any(get_param(k) for k in auth_triggers):
 
 if page == "landing":
     st.set_page_config(page_title="Data Lie Detector", page_icon="🕵️", layout="wide")
-    st.markdown('<style>[data-testid="stHeader"], [data-testid="stFooter"], #MainMenu, .stDeployButton { visibility: hidden !important; height: 0 !important; } .stApp { background-color: #06060f !important; } [data-testid="stAppViewContainer"] { padding: 0 !important; } .block-container { padding: 0 !important; max-width: 100% !important; margin: 0 !important; } div.stMarkdown, div.stMarkdown > div { width: 100% !important; max-width: 100% !important; }</style>', unsafe_allow_html=True)
+    # Consolidated CSS to remove all margins and gaps between elements
+    st.markdown("""
+<style>
+    [data-testid="stHeader"], [data-testid="stFooter"], #MainMenu, .stDeployButton, [data-testid="stToolbar"] { 
+        visibility: hidden !important; height: 0 !important; display: none !important; 
+    }
+    [data-testid="stSidebar"], [data-testid="collapsedControl"] { display: none !important; }
+    .stApp { background-color: #06060f !important; }
+    [data-testid="stAppViewContainer"] { padding: 0 !important; }
+    [data-testid="stAppViewContainer"] > section:nth-child(2) { padding: 0 !important; }
+    .block-container { padding: 0 !important; max-width: 100% !important; margin: 0 !important; }
+    [data-testid="stVerticalBlock"] { gap: 0 !important; }
+    
+    ::-webkit-scrollbar { width: 10px !important; }
+    ::-webkit-scrollbar-track { background: #06060f !important; }
+    ::-webkit-scrollbar-thumb { 
+        background: linear-gradient(180deg, #7b2ff7, #ff6bcb) !important; 
+        border-radius: 10px !important;
+    }
+</style>
+""", unsafe_allow_html=True)
     
     landing_dir = os.path.join(os.path.dirname(__file__), "landing")
     try:
@@ -60,29 +80,38 @@ if page == "landing":
             
         html = re.sub(r'href="/app[^"]*"', repl, html)
 
-        overrides = "<style>.feature-card, .step, .price-card { opacity: 1 !important; transform: none !important; } html, body { background: #06060f !important; overflow-y: auto !important; height: auto !important; min-height: 100vh !important; } .navbar { position: fixed !important; }</style>"
+        # ── TRUE DYNAMIC PRECISION VIEW ──
+        # Inject the correct Streamlit auto-resize script and overrides
+        overrides = """
+        <style>
+            .feature-card, .step, .price-card { opacity: 1 !important; transform: none !important; }
+            html, body { background: #06060f !important; overflow: hidden !important; margin: 0; padding: 0; }
+            ::-webkit-scrollbar { display: none !important; }
+        </style>
+        <script>
+            function setFrameHeight() {
+                const height = document.documentElement.scrollHeight;
+                window.parent.postMessage({
+                    isStreamlitMessage: true,
+                    type: 'setFrameHeight',
+                    height: height
+                }, '*');
+            }
+            window.addEventListener('load', setFrameHeight);
+            window.addEventListener('resize', setFrameHeight);
+            const observer = new MutationObserver(setFrameHeight);
+            observer.observe(document.body, { childList: true, subtree: true, attributes: true });
+            setTimeout(setFrameHeight, 500);
+            setTimeout(setFrameHeight, 2000);
+        </script>
+        """
         html = html.replace("</head>", f"{overrides}</head>")
         
-        # Add script to auto-resize iframe and ensure links navigate parent
-        resize_script = '''<script>
-        function resizeFrame() {
-            var h = document.documentElement.scrollHeight;
-            window.parent.postMessage({type:'streamlit:setFrameHeight', height: h}, '*');
-        }
-        window.addEventListener('load', resizeFrame);
-        window.addEventListener('resize', resizeFrame);
-        setTimeout(resizeFrame, 500);
-        document.addEventListener('click', function(e) {
-            var a = e.target.closest('a');
-            if (a && a.getAttribute('target') === '_self') {
-                e.preventDefault();
-                window.parent.location.href = a.href;
-            }
-        });
-        </script>'''
-        html = html.replace("</body>", f"{resize_script}</body>")
-        
-        components.html(html, height=4000, scrolling=True)
+        # Ensure links work correctly
+        html = html.replace('target="_blank"', 'target="_self"')
+
+        # Use components.html with auto-resizing enabled via the correct script
+        components.html(html, height=4500, scrolling=True)
         st.stop()
     except Exception as e:
         st.error(f"Landing Error: {e}")
@@ -124,12 +153,12 @@ from utils.auth import (
 # ═══════════════════════════════════════════════════════════════════════
 # PAGE CONFIG & PREMIUM CSS
 # ═══════════════════════════════════════════════════════════════════════
-# st.set_page_config(
-#     page_title="Data Lie Detector",
-#     page_icon="landing/logo.png" if os.path.exists("landing/logo.png") else "🕵️",
-#     layout="wide",
-#     initial_sidebar_state="expanded"
-# )
+st.set_page_config(
+    page_title="Data Lie Detector",
+    page_icon="landing/logo.png" if os.path.exists("landing/logo.png") else "🕵️",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
 # ── QUERY PARAM COMPATIBILITY WRAPPER ──
 def get_all_params():
@@ -160,14 +189,19 @@ st.markdown("""
 
     /* ══ GLOBAL ══ */
     .stApp { font-family: 'Inter', -apple-system, sans-serif; }
-    html, body, .stApp { background: #06060f !important; }
-    #MainMenu, footer, header, [data-testid="stToolbar"] { visibility:hidden!important; height:0!important; }
-    .stDeployButton { display:none!important; }
-    [data-testid="stHeader"] { background:transparent!important; }
+    html, body, .stApp { background: #06060f !important; overflow-x: hidden !important; }
+    [data-testid="stHeader"], [data-testid="stFooter"], #MainMenu, .stDeployButton, [data-testid="stToolbar"] { 
+        visibility: hidden !important; 
+        height: 0 !important; 
+        display: none !important;
+    }
+    [data-testid="stAppViewContainer"] { padding: 0 !important; }
+    [data-testid="stAppViewContainer"] > section:nth-child(2) { padding: 0 !important; }
     ::-webkit-scrollbar { width:5px; }
     ::-webkit-scrollbar-track { background:transparent; }
     ::-webkit-scrollbar-thumb { background:rgba(123,47,247,0.3); border-radius:10px; }
-    .main .block-container { padding-top: 0.5rem !important; }
+    .main .block-container { padding-top: 1rem !important; padding-bottom: 2rem !important; max-width: 100% !important; }
+    [data-testid="stVerticalBlock"] { gap: 0.5rem !important; }
 
     /* ══ HERO HEADER ══ */
     .hero-header {
@@ -545,7 +579,7 @@ border: 1px solid rgba(123,47,247,0.3); border-radius: 16px; padding: 2.5rem; te
         st.rerun()
 
     # ── 4. Full-Page Login UI ──
-    home_url = os.environ.get("HOME_URL", "?page=landing")
+    home_url = os.environ.get("HOME_URL", "http://localhost:8000")
     
     css_code = """
 <style>
