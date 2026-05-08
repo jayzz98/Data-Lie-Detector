@@ -1,52 +1,56 @@
 # -*- coding: utf-8 -*-
 import streamlit as st
-import os
-import base64
-import re
-import time
 import pandas as pd
+import base64
+import os
+import time
+import re
 import streamlit.components.v1 as components
 
-# Compatibility for Query Params
+# ─────────────────────────────────────────────────────────
+# 1. ROUTING & UTILS
+# ─────────────────────────────────────────────────────────
+def get_all_params():
+    try: return st.query_params
+    except AttributeError: return st.experimental_get_query_params()
+
 def get_param(key, default=None):
-    try:
-        p = st.query_params
-        if key in p: return p[key]
-    except:
-        p = st.experimental_get_query_params()
-        if key in p: return p[key][0]
+    p = get_all_params()
+    if key in p:
+        val = p[key]
+        return val[0] if isinstance(val, list) else val
     return default
 
 def clear_params():
-    try:
-        st.query_params.clear()
-    except:
-        st.experimental_set_query_params()
+    try: st.query_params.clear()
+    except: st.experimental_set_query_params()
 
-# Routing logic
+def get_base64_image(image_path):
+    if os.path.exists(image_path):
+        with open(image_path, "rb") as img_file:
+            return base64.b64encode(img_file.read()).decode('utf-8')
+    return ""
+
+# Determine current page
 page = get_param("page")
 if not page:
     page = "app" if st.session_state.get("user_email") else "landing"
 
+# Force App page if any auth-related params are present
 auth_triggers = ["login_email", "code", "login", "plan", "state"]
 if any(get_param(k) for k in auth_triggers):
     page = "app"
 
+# ─────────────────────────────────────────────────────────
+# 2. LANDING PAGE
+# ─────────────────────────────────────────────────────────
 if page == "landing":
     st.set_page_config(page_title="Data Lie Detector", page_icon="🕵️", layout="wide")
-    # Consolidated CSS to remove all margins and gaps between elements
+    
+    # Nuclear CSS for landing page
     st.markdown("""
 <style>
-    /* Landing Page Height Fix */
-    [data-testid="stAppViewContainer"], .main, .stApp {
-        overflow: visible !important;
-        height: auto !important;
-    }
-    iframe {
-        width: 100vw !important;
-        height: 4500px !important;
-        border: none;
-    }
+    /* Hide ALL streamlit standard UI */
     header, footer, [data-testid="stHeader"], [data-testid="stFooter"], #MainMenu, .stDeployButton, [data-testid="stToolbar"], [data-testid="stDecoration"] { 
         visibility: hidden !important; height: 0 !important; display: none !important; 
     }
@@ -55,89 +59,64 @@ if page == "landing":
     [data-testid="stAppViewContainer"] { padding: 0 !important; }
     .block-container { padding: 0 !important; max-width: 100% !important; margin: 0 !important; }
     
-    ::-webkit-scrollbar { width: 10px !important; }
+    /* Force parent scrolling */
+    [data-testid="stAppViewContainer"], .main, .stApp { overflow: visible !important; height: auto !important; }
+    iframe { width: 100vw !important; height: 4500px !important; border: none; }
+    
+    ::-webkit-scrollbar { width: 8px !important; }
     ::-webkit-scrollbar-track { background: #06060f !important; }
-    ::-webkit-scrollbar-thumb { 
-        background: linear-gradient(180deg, #7b2ff7, #ff6bcb) !important; 
-        border-radius: 10px !important;
-    }
+    ::-webkit-scrollbar-thumb { background: #7b2ff7 !important; border-radius: 10px !important; }
 </style>
 """, unsafe_allow_html=True)
-    
+
     landing_dir = os.path.join(os.path.dirname(__file__), "landing")
     try:
         with open(os.path.join(landing_dir, "index.html"), "r", encoding="utf-8") as f:
             html = f.read()
+        
+        # Inject CSS
         if os.path.exists(os.path.join(landing_dir, "style.css")):
             with open(os.path.join(landing_dir, "style.css"), "r", encoding="utf-8") as f:
                 css = f.read()
             html = html.replace('<link rel="stylesheet" href="style.css?v=2">', f'<style>{css}</style>')
-        if os.path.exists(os.path.join(landing_dir, "logo.png")):
-            with open(os.path.join(landing_dir, "logo.png"), "rb") as f:
-                logo_b64 = base64.b64encode(f.read()).decode()
+        
+        # Encode main logo
+        logo_b64 = get_base64_image(os.path.join(landing_dir, "logo.png"))
+        if logo_b64:
             html = html.replace('src="logo.png"', f'src="data:image/png;base64,{logo_b64}"')
 
-        # ── NATIVE HTML ROUTING ──
-        # Replace hrefs with relative URLs and target="_self" so Streamlit navigates correctly in DOM
-        def repl(m):
-            original = m.group(0)
-            if "plan=" in original:
-                plan = re.search(r'plan=([^&"\']*)', original).group(1)
-                return f'href="?page=app&plan={plan}" target="_self"'
-            return 'href="?page=app" target="_self"'
-            
-        html = re.sub(r'href="/app[^"]*"', repl, html)
+        # Encode assets/ images
+        assets_dir = os.path.join(landing_dir, "assets")
+        if os.path.exists(assets_dir):
+            for img_name in os.listdir(assets_dir):
+                if img_name.endswith(('.png', '.jpg', '.jpeg', '.svg')):
+                    img_path = os.path.join(assets_dir, img_name)
+                    img_b64 = get_base64_image(img_path)
+                    if img_b64:
+                        html = html.replace(f'src="assets/{img_name}"', f'src="data:image/png;base64,{img_b64}"')
 
-        # ── TRUE DYNAMIC PRECISION VIEW ──
-        # Inject the correct Streamlit auto-resize script and overrides
+        # Fix internal links to use target="_self" and app params
+        html = html.replace('href="/app"', 'href="?page=app"')
+        html = html.replace('href="/app?plan=', 'href="?page=app&plan=')
+        html = re.sub(r'target="_blank"', 'target="_self"', html)
+
+        # Inject auto-resize script (backup)
         overrides = """
         <style>
             .feature-card, .step, .price-card { opacity: 1 !important; transform: none !important; }
             html, body { background: #06060f !important; overflow: hidden !important; margin: 0; padding: 0; }
-            ::-webkit-scrollbar { display: none !important; }
         </style>
-        <script>
-            function setFrameHeight() {
-                const height = document.documentElement.scrollHeight;
-                window.parent.postMessage({
-                    isStreamlitMessage: true,
-                    type: 'setFrameHeight',
-                    height: height
-                }, '*');
-            }
-            window.addEventListener('load', setFrameHeight);
-            window.addEventListener('resize', setFrameHeight);
-            const observer = new MutationObserver(setFrameHeight);
-            observer.observe(document.body, { childList: true, subtree: true, attributes: true });
-            setTimeout(setFrameHeight, 500);
-            setTimeout(setFrameHeight, 2000);
-        </script>
         """
         html = html.replace("</head>", f"{overrides}</head>")
-        
-        # Ensure links work correctly
-        html = html.replace('target="_blank"', 'target="_self"')
 
-        # Use components.html with auto-resizing enabled via the correct script
         components.html(html, height=4500, scrolling=False)
         st.stop()
     except Exception as e:
         st.error(f"Landing Error: {e}")
 
-# -*- coding: utf-8 -*-
-import streamlit as st
-import pandas as pd
-import base64
-import os
-import time
-
-def get_base64_image(image_path):
-    if os.path.exists(image_path):
-        with open(image_path, "rb") as img_file:
-            return base64.b64encode(img_file.read()).decode('utf-8')
-    return ""
-
-logo_b64 = get_base64_image("assets/logo.png")
+# ─────────────────────────────────────────────────────────
+# 3. DASHBOARD LOGIC (Original app.py)
+# ─────────────────────────────────────────────────────────
 
 from utils.loader import load_file
 from utils.profiler import profile_data
@@ -158,6 +137,8 @@ from utils.auth import (
     verify_google_code, verify_microsoft_code, has_oauth_credentials,
 )
 
+logo_b64 = get_base64_image("assets/logo.png")
+
 # ═══════════════════════════════════════════════════════════════════════
 # PAGE CONFIG & PREMIUM CSS
 # ═══════════════════════════════════════════════════════════════════════
@@ -167,29 +148,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
-# ── QUERY PARAM COMPATIBILITY WRAPPER ──
-def get_all_params():
-    try:
-        return st.query_params
-    except AttributeError:
-        return st.experimental_get_query_params()
-
-def get_param(key, default=None):
-    p = get_all_params()
-    if key in p:
-        val = p[key]
-        return val[0] if isinstance(val, list) else val
-    return default
-
-def clear_params():
-    try:
-        st.query_params.clear()
-    except:
-        st.experimental_set_query_params()
-
-
-
 
 st.markdown("""
 <style>
@@ -489,9 +447,6 @@ if "counted_files" not in st.session_state:
     st.session_state.counted_files = set()
 
 
-
-
-
 # ═══════════════════════════════════════════════════════════════════════
 # CAPTURE PLAN PARAMETER (from landing page "Buy Now" links)
 # ═══════════════════════════════════════════════════════════════════════
@@ -588,9 +543,7 @@ border: 1px solid rgba(123,47,247,0.3); border-radius: 16px; padding: 2.5rem; te
         st.rerun()
 
     # ── 4. Full-Page Login UI ──
-    home_url = os.environ.get("HOME_URL", "http://localhost:8000")
-    if home_url == "?page=landing":
-        home_url = "http://localhost:8000"
+    home_url = "?page=landing"
     
     css_code = """
 <style>
@@ -641,7 +594,7 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stVertical
     login_html = f"""
 <div class="login-wrapper">
 <div class="login-container">
-<a href="{home_url}" target="_top" style="position:absolute; top:15px; left:15px; color:rgba(255,255,255,0.4); text-decoration:none; font-size:0.75rem; font-weight:600;">← Home</a>
+<a href="{home_url}" target="_self" style="position:absolute; top:15px; left:15px; color:rgba(255,255,255,0.4); text-decoration:none; font-size:0.75rem; font-weight:600;">← Home</a>
 <img src="data:image/png;base64,{logo_b64}" style="height: 3.2rem; margin-bottom: 0.8rem; border-radius: 8px;">
 <div class="login-title">Welcome Back</div>
 <a href="{google_href}" target="_self" class="oauth-btn oauth-google">
