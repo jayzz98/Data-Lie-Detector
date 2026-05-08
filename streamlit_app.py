@@ -37,15 +37,15 @@ if page == "landing":
     # Consolidated CSS to remove all margins and gaps between elements
     st.markdown("""
 <style>
-    /* Ultimate Full App Override */
+    /* Landing Page Height Fix */
+    [data-testid="stAppViewContainer"], .main, .stApp {
+        overflow: visible !important;
+        height: auto !important;
+    }
     iframe {
-        position: fixed;
-        top: 0;
-        left: 0;
         width: 100vw !important;
-        height: 100vh !important;
+        height: 4500px !important;
         border: none;
-        z-index: 999999;
     }
     header, footer, [data-testid="stHeader"], [data-testid="stFooter"], #MainMenu, .stDeployButton, [data-testid="stToolbar"], [data-testid="stDecoration"] { 
         visibility: hidden !important; height: 0 !important; display: none !important; 
@@ -119,7 +119,7 @@ if page == "landing":
         html = html.replace('target="_blank"', 'target="_self"')
 
         # Use components.html with auto-resizing enabled via the correct script
-        components.html(html, height=1200, scrolling=True)
+        components.html(html, height=4500, scrolling=False)
         st.stop()
     except Exception as e:
         st.error(f"Landing Error: {e}")
