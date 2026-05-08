@@ -462,6 +462,8 @@ border: 1px solid rgba(123,47,247,0.3); border-radius: 16px; padding: 2.5rem; te
 
     # ── 4. Full-Page Login UI ──
     home_url = os.environ.get("HOME_URL", "http://localhost:8000")
+    if home_url == "?page=landing":
+        home_url = "http://localhost:8000"
     
     css_code = """
 <style>
