@@ -62,7 +62,27 @@ if page == "landing":
 
         overrides = "<style>.feature-card, .step, .price-card { opacity: 1 !important; transform: none !important; } html, body { background: #06060f !important; overflow-y: auto !important; height: auto !important; min-height: 100vh !important; } .navbar { position: fixed !important; }</style>"
         html = html.replace("</head>", f"{overrides}</head>")
-        st.html(html)
+        
+        # Add script to auto-resize iframe and ensure links navigate parent
+        resize_script = '''<script>
+        function resizeFrame() {
+            var h = document.documentElement.scrollHeight;
+            window.parent.postMessage({type:'streamlit:setFrameHeight', height: h}, '*');
+        }
+        window.addEventListener('load', resizeFrame);
+        window.addEventListener('resize', resizeFrame);
+        setTimeout(resizeFrame, 500);
+        document.addEventListener('click', function(e) {
+            var a = e.target.closest('a');
+            if (a && a.getAttribute('target') === '_self') {
+                e.preventDefault();
+                window.parent.location.href = a.href;
+            }
+        });
+        </script>'''
+        html = html.replace("</body>", f"{resize_script}</body>")
+        
+        components.html(html, height=4000, scrolling=True)
         st.stop()
     except Exception as e:
         st.error(f"Landing Error: {e}")
