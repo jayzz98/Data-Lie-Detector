@@ -32,9 +32,7 @@ def get_base64_image(image_path):
     return ""
 
 # Determine current page
-page = get_param("page")
-if not page:
-    page = "app" if st.session_state.get("user_email") else "landing"
+page = get_param("page", "landing")
 
 # Force App page if any auth-related params are present
 auth_triggers = ["login_email", "code", "login", "plan", "state"]
