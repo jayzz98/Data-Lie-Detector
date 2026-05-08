@@ -35,7 +35,10 @@ async def get_app(request: Request):
     # If the user has only one tunnel, they might need a separate one for the app
     # or point this to a different port if their tunnel supports it.
     public_app_url = "https://data-lie-detector-icjvsdmt7y7zystrxhqy5r.streamlit.app/"
-    return RedirectResponse(url=public_app_url)
+    qs = request.url.query
+    if qs:
+        return RedirectResponse(url=f"{public_app_url}?page=app&{qs}")
+    return RedirectResponse(url=f"{public_app_url}?page=app")
 
 # Serve the static files for the landing page
 app.mount("/", StaticFiles(directory=landing_dir, html=True), name="landing")
