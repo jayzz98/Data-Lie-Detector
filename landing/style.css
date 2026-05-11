@@ -652,7 +652,7 @@ body {
 
 .steps {
     display: flex;
-    align-items: center;
+    align-items: stretch;
     justify-content: center;
     gap: 1.5rem;
     margin-top: 3rem;
@@ -665,7 +665,10 @@ body {
     border-radius: var(--radius);
     padding: 2rem 1.5rem;
     text-align: center;
-    width: 200px;
+    width: 220px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
     opacity: 0;
     transform: translateY(20px);
     transition: all 0.3s ease;
@@ -704,6 +707,7 @@ body {
 .step-arrow {
     font-size: 1.5rem;
     color: var(--text-secondary);
+    align-self: center;
 }
 
 /* ── Pricing ── */
@@ -723,6 +727,9 @@ body {
     padding: 1.5rem 1rem;
     text-align: center;
     position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
     opacity: 0;
     transform: translateY(20px);
     transition: all 0.3s ease;
@@ -797,6 +804,7 @@ body {
 .price-card .btn {
     width: 100%;
     justify-content: center;
+    margin-top: auto;
 }
 
 /* ── CTA ── */
