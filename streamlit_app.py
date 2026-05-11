@@ -34,16 +34,21 @@ def get_base64_image(image_path):
 # Determine current page
 page = get_param("page", "landing")
 
-# Force App page if any auth-related params are present
+# Initialize session state early (Required for guest login persistence)
+if "user_email" not in st.session_state:
+    st.session_state.user_email = None
+
+# Force App page if any auth-related params are present or user is logged in
 auth_triggers = ["login_email", "code", "login", "plan", "state"]
-if any(get_param(k) for k in auth_triggers):
+if any(get_param(k) for k in auth_triggers) or st.session_state.user_email:
     page = "app"
 
 # ─────────────────────────────────────────────────────────
 # 2. LANDING PAGE
 # ─────────────────────────────────────────────────────────
 if page == "landing":
-    st.set_page_config(page_title="Data Lie Detector", page_icon="🕵️", layout="wide")
+    st.markdown('<meta http-equiv="refresh" content="0; url=http://localhost:8000/">', unsafe_allow_html=True)
+    st.stop()
     
     # Nuclear CSS for landing page
     st.markdown("""
@@ -311,19 +316,28 @@ st.markdown("""
     }
     section[data-testid="stSidebar"] * { color: #c0c0d8 !important; }
     section[data-testid="stSidebar"] h1, section[data-testid="stSidebar"] h2,
-    section[data-testid="stSidebar"] h3 { color: #e8e8f0 !important; }
+    section[data-testid="stSidebar"] h3 { color: #e8e8f0 !important; margin-bottom: 0.5rem !important; }
+    
+    /* Ensure long email addresses don't overflow or overlap */
+    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p,
+    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] span {
+        overflow-wrap: break-word !important;
+        word-break: break-all !important;
+        line-height: 1.4 !important;
+    }
+
     section[data-testid="stSidebar"] .stButton>button {
         background: rgba(123,47,247,0.1)!important; border:1px solid rgba(123,47,247,0.25)!important;
         border-radius:10px!important; color:#c0b0f0!important; font-weight:600!important;
-        transition:all .2s!important;
+        transition:all .2s!important; margin-top: 0.5rem !important;
     }
     section[data-testid="stSidebar"] .stButton>button:hover {
         background:rgba(123,47,247,0.2)!important; border-color:rgba(123,47,247,0.4)!important;
         transform:translateY(-1px)!important;
     }
-    /* ══ SIDEBAR TIGHTENING ══ */
-    [data-testid="stSidebar"] [data-testid="stVerticalBlock"] > div { margin-top: -0.8rem !important; }
-    [data-testid="stSidebar"] hr { margin: 0.5rem 0 !important; opacity: 0.1; }
+    /* ══ SIDEBAR SPACING ══ */
+    [data-testid="stSidebar"] [data-testid="stVerticalBlock"] { gap: 1rem !important; }
+    [data-testid="stSidebar"] hr { margin: 1rem 0 !important; opacity: 0.1; }
 
     /* ══ TABS ══ */
     .stTabs [data-baseweb="tab-list"] {
@@ -452,8 +466,6 @@ def render_section(icon, title):
     st.markdown(f'<div class="section-header">{icon} {title}</div>', unsafe_allow_html=True)
 
 
-if "user_email" not in st.session_state:
-    st.session_state.user_email = None
 
 if "counted_files" not in st.session_state:
     st.session_state.counted_files = set()
@@ -555,7 +567,7 @@ border: 1px solid rgba(123,47,247,0.3); border-radius: 16px; padding: 2.5rem; te
         st.rerun()
 
     # ── 4. Full-Page Login UI ──
-    home_url = "?page=landing"
+    home_url = "http://localhost:8000/"
     
     css_code = """
 <style>
@@ -690,7 +702,8 @@ with st.sidebar:
         st.caption(f"Plan: {user['subscription'].upper()}")
         if st.button("Logout"):
             st.session_state.user_email = None
-            st.rerun()
+            st.markdown('<meta http-equiv="refresh" content="0; url=http://localhost:8000/">', unsafe_allow_html=True)
+            st.stop()
         st.divider()
 
     st.markdown("### ⚙️ Settings")

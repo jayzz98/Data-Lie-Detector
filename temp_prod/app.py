@@ -3,27 +3,6 @@ import streamlit as st
 import pandas as pd
 import base64
 import os
-import time
-import re
-import streamlit.components.v1 as components
-
-# ─────────────────────────────────────────────────────────
-# 1. ROUTING & UTILS
-# ─────────────────────────────────────────────────────────
-def get_all_params():
-    try: return st.query_params
-    except AttributeError: return st.experimental_get_query_params()
-
-def get_param(key, default=None):
-    p = get_all_params()
-    if key in p:
-        val = p[key]
-        return val[0] if isinstance(val, list) else val
-    return default
-
-def clear_params():
-    try: st.query_params.clear()
-    except: st.experimental_set_query_params()
 
 def get_base64_image(image_path):
     if os.path.exists(image_path):
@@ -31,109 +10,7 @@ def get_base64_image(image_path):
             return base64.b64encode(img_file.read()).decode('utf-8')
     return ""
 
-# Determine current page
-page = get_param("page", "landing")
-
-# Initialize session state early (Required for guest login persistence)
-if "user_email" not in st.session_state:
-    st.session_state.user_email = None
-
-# Force App page if any auth-related params are present or user is logged in
-auth_triggers = ["login_email", "code", "login", "plan", "state"]
-if any(get_param(k) for k in auth_triggers) or st.session_state.user_email:
-    page = "app"
-
-# ─────────────────────────────────────────────────────────
-# 2. LANDING PAGE
-# ─────────────────────────────────────────────────────────
-if page == "landing":
-    st.markdown('<meta http-equiv="refresh" content="0; url=http://localhost:8000/">', unsafe_allow_html=True)
-    st.stop()
-    
-    # Nuclear CSS for landing page
-    st.markdown("""
-<style>
-    /* Nuclear Layout Reset for Landing Page */
-    [data-testid="stAppViewContainer"], 
-    [data-testid="stAppViewContainer"] > section, 
-    .main, 
-    .stApp,
-    .block-container {
-        overflow: visible !important;
-        height: auto !important;
-        min-height: 100vh !important;
-        padding: 0 !important;
-        margin: 0 !important;
-    }
-    
-    /* Force Iframe to be massive and let the parent scroll it */
-    iframe {
-        width: 100vw !important;
-        height: 5000px !important;
-        border: none !important;
-        overflow: hidden !important;
-    }
-
-    header, footer, [data-testid="stHeader"], [data-testid="stFooter"], #MainMenu, .stDeployButton, [data-testid="stToolbar"], [data-testid="stDecoration"] { 
-        visibility: hidden !important; height: 0 !important; display: none !important; 
-    }
-    [data-testid="stSidebar"], [data-testid="collapsedControl"] { display: none !important; }
-    .stApp { background-color: #06060f !important; }
-    
-    ::-webkit-scrollbar { width: 8px !important; }
-    ::-webkit-scrollbar-track { background: #06060f !important; }
-    ::-webkit-scrollbar-thumb { background: #7b2ff7 !important; border-radius: 10px !important; }
-</style>
-""", unsafe_allow_html=True)
-
-    landing_dir = os.path.join(os.path.dirname(__file__), "landing")
-    try:
-        with open(os.path.join(landing_dir, "index.html"), "r", encoding="utf-8") as f:
-            html = f.read()
-        
-        # Inject CSS
-        if os.path.exists(os.path.join(landing_dir, "style.css")):
-            with open(os.path.join(landing_dir, "style.css"), "r", encoding="utf-8") as f:
-                css = f.read()
-            html = html.replace('<link rel="stylesheet" href="style.css?v=2">', f'<style>{css}</style>')
-        
-        # Encode main logo
-        logo_b64 = get_base64_image(os.path.join(landing_dir, "logo.png"))
-        if logo_b64:
-            html = html.replace('src="logo.png"', f'src="data:image/png;base64,{logo_b64}"')
-
-        # Encode assets/ images
-        assets_dir = os.path.join(landing_dir, "assets")
-        if os.path.exists(assets_dir):
-            for img_name in os.listdir(assets_dir):
-                if img_name.endswith(('.png', '.jpg', '.jpeg', '.svg')):
-                    img_path = os.path.join(assets_dir, img_name)
-                    img_b64 = get_base64_image(img_path)
-                    if img_b64:
-                        html = html.replace(f'src="assets/{img_name}"', f'src="data:image/png;base64,{img_b64}"')
-
-        # Fix internal links
-        html = html.replace('href="/app"', 'href="?page=app"')
-        html = html.replace('href="/app?plan=', 'href="?page=app&plan=')
-        html = re.sub(r'target="_blank"', 'target="_self"', html)
-
-        # Inject auto-resize script
-        overrides = """
-        <style>
-            .feature-card, .step, .price-card { opacity: 1 !important; transform: none !important; }
-            html, body { background: #06060f !important; overflow: hidden !important; margin: 0; padding: 0; }
-        </style>
-        """
-        html = html.replace("</head>", f"{overrides}</head>")
-
-        components.html(html, height=5000, scrolling=False)
-        st.stop()
-    except Exception as e:
-        st.error(f"Landing Error: {e}")
-
-# ─────────────────────────────────────────────────────────
-# 3. DASHBOARD LOGIC (Original app.py)
-# ─────────────────────────────────────────────────────────
+logo_b64 = get_base64_image("assets/logo.png")
 
 from utils.loader import load_file
 from utils.profiler import profile_data
@@ -154,14 +31,12 @@ from utils.auth import (
     verify_google_code, verify_microsoft_code, has_oauth_credentials,
 )
 
-logo_b64 = get_base64_image("assets/logo.png")
-
 # ═══════════════════════════════════════════════════════════════════════
 # PAGE CONFIG & PREMIUM CSS
 # ═══════════════════════════════════════════════════════════════════════
 st.set_page_config(
     page_title="Data Lie Detector",
-    page_icon="landing/logo.png" if os.path.exists("landing/logo.png") else "🕵️",
+    page_icon="assets/logo.png",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -172,26 +47,19 @@ st.markdown("""
 
     /* ══ GLOBAL ══ */
     .stApp { font-family: 'Inter', -apple-system, sans-serif; }
-    html, body, .stApp { background: #06060f !important; overflow-x: hidden !important; }
-    /* Hide ALL streamlit standard UI */
-    header, footer, [data-testid="stHeader"], [data-testid="stFooter"], #MainMenu, .stDeployButton, [data-testid="stToolbar"], [data-testid="stDecoration"] { 
-        visibility: hidden !important; 
-        height: 0 !important; 
-        display: none !important;
-    }
-    [data-testid="stAppViewContainer"] { padding: 0 !important; }
-    [data-testid="stAppViewContainer"] > section:nth-child(2) { padding: 0 !important; }
+    html, body, .stApp { background: #06060f !important; }
+    #MainMenu, footer, header, [data-testid="stToolbar"] { visibility:hidden!important; height:0!important; }
+    .stDeployButton { display:none!important; }
+    [data-testid="stHeader"] { background:transparent!important; }
     ::-webkit-scrollbar { width:5px; }
     ::-webkit-scrollbar-track { background:transparent; }
     ::-webkit-scrollbar-thumb { background:rgba(123,47,247,0.3); border-radius:10px; }
-    .main .block-container { padding-top: 1rem !important; padding-bottom: 2rem !important; max-width: 100% !important; }
-    [data-testid="stVerticalBlock"] { gap: 0.5rem !important; }
 
     /* ══ HERO HEADER ══ */
     .hero-header {
         background: linear-gradient(135deg, #0a0a1a 0%, #1a1040 40%, #0d0d2a 100%);
-        border-radius: 20px; padding: 0.4rem 1.5rem; margin-bottom: 0.5rem; text-align: center;
-        border: 1px solid rgba(123,47,247,0.15); margin-top: -4rem !important;
+        border-radius: 20px; padding: 3rem 2.5rem; margin-bottom: 2rem; text-align: center;
+        border: 1px solid rgba(123,47,247,0.15);
         box-shadow: 0 8px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04);
         position: relative; overflow: hidden;
     }
@@ -202,12 +70,12 @@ st.markdown("""
         pointer-events:none;
     }
     .hero-header h1 {
-        font-size: 1.8rem; font-weight: 900; position:relative;
+        font-size: 2.6rem; font-weight: 900; position:relative;
         background: linear-gradient(135deg, #00d2ff, #7b2ff7 50%, #ff6bcb);
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        margin-bottom: 0.2rem; letter-spacing:-0.02em;
+        margin-bottom: 0.4rem; letter-spacing:-0.02em;
     }
-    .hero-header p { color: rgba(240,240,245,0.5); font-size: 0.85rem; font-weight: 400; position:relative; }
+    .hero-header p { color: rgba(240,240,245,0.5); font-size: 0.95rem; font-weight: 400; position:relative; }
 
     /* ══ SCORE CARDS ══ */
     .score-card {
@@ -316,28 +184,16 @@ st.markdown("""
     }
     section[data-testid="stSidebar"] * { color: #c0c0d8 !important; }
     section[data-testid="stSidebar"] h1, section[data-testid="stSidebar"] h2,
-    section[data-testid="stSidebar"] h3 { color: #e8e8f0 !important; margin-bottom: 0.5rem !important; }
-    
-    /* Ensure long email addresses don't overflow or overlap */
-    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p,
-    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] span {
-        overflow-wrap: break-word !important;
-        word-break: break-all !important;
-        line-height: 1.4 !important;
-    }
-
+    section[data-testid="stSidebar"] h3 { color: #e8e8f0 !important; }
     section[data-testid="stSidebar"] .stButton>button {
         background: rgba(123,47,247,0.1)!important; border:1px solid rgba(123,47,247,0.25)!important;
         border-radius:10px!important; color:#c0b0f0!important; font-weight:600!important;
-        transition:all .2s!important; margin-top: 0.5rem !important;
+        transition:all .2s!important;
     }
     section[data-testid="stSidebar"] .stButton>button:hover {
         background:rgba(123,47,247,0.2)!important; border-color:rgba(123,47,247,0.4)!important;
         transform:translateY(-1px)!important;
     }
-    /* ══ SIDEBAR SPACING ══ */
-    [data-testid="stSidebar"] [data-testid="stVerticalBlock"] { gap: 1rem !important; }
-    [data-testid="stSidebar"] hr { margin: 1rem 0 !important; opacity: 0.1; }
 
     /* ══ TABS ══ */
     .stTabs [data-baseweb="tab-list"] {
@@ -466,18 +322,22 @@ def render_section(icon, title):
     st.markdown(f'<div class="section-header">{icon} {title}</div>', unsafe_allow_html=True)
 
 
+if "user_email" not in st.session_state:
+    st.session_state.user_email = None
 
 if "counted_files" not in st.session_state:
     st.session_state.counted_files = set()
 
 
+
+
+
 # ═══════════════════════════════════════════════════════════════════════
 # CAPTURE PLAN PARAMETER (from landing page "Buy Now" links)
 # ═══════════════════════════════════════════════════════════════════════
-params = get_all_params()
-if "plan" in params:
-    st.session_state.pending_plan = get_param("plan")
-    clear_params()
+if "plan" in st.query_params:
+    st.session_state.pending_plan = st.query_params["plan"]
+    st.query_params.clear()
     st.rerun()
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -485,17 +345,16 @@ if "plan" in params:
 # ═══════════════════════════════════════════════════════════════════════
 if not st.session_state.user_email:
     # ── 1. Handle OAuth Callback (user is returning from Google/Microsoft) ──
-    params = get_all_params()
-    if "code" in params and "state" in params:
-        code = get_param("code")
-        state = get_param("state")
+    if "code" in st.query_params and "state" in st.query_params:
+        code = st.query_params["code"]
+        state = st.query_params["state"]
         email = None
         if state == "google":
             email = verify_google_code(code)
         elif state == "microsoft":
             email = verify_microsoft_code(code)
 
-        clear_params()
+        st.query_params.clear()
         if email:
             user = login_user(email)
             st.session_state.user_email = user["email"]
@@ -508,9 +367,9 @@ if not st.session_state.user_email:
     microsoft_url = get_microsoft_login_url()
 
     # If credentials are missing, fall back to a simulated form
-    if "login" in params and not has_oauth_credentials():
-        provider = get_param("login").capitalize()
-        clear_params()
+    if "login" in st.query_params and not has_oauth_credentials():
+        provider = st.query_params["login"].capitalize()
+        st.query_params.clear()
         st.session_state.oauth_provider = provider
         st.rerun()
 
@@ -555,94 +414,97 @@ border: 1px solid rgba(123,47,247,0.3); border-radius: 16px; padding: 2.5rem; te
         st.stop()
 
     # ── 3. Determine button hrefs ──
-    google_href = google_url if google_url else "?page=app&login=google"
-    microsoft_href = microsoft_url if microsoft_url else "?page=app&login=microsoft"
-
-    # ── 3. Handle Email/Guest Login via URL ──
-    if "login_email" in params:
-        email = get_param("login_email")
-        clear_params()
-        user = login_user(email)
-        st.session_state.user_email = user["email"]
-        st.rerun()
+    google_href = google_url if google_url else "?login=google"
+    microsoft_href = microsoft_url if microsoft_url else "?login=microsoft"
 
     # ── 4. Full-Page Login UI ──
-    home_url = "http://localhost:8000/"
-    
-    css_code = """
+    st.markdown(f"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-[data-testid="stSidebar"] { display: none; }
-[data-testid="collapsedControl"] { display: none; }
-[data-testid="stHeader"] { display: none; }
-html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stVerticalBlock"], .login-wrapper {
-    background: #06060f !important;
-    overflow: hidden !important;
-    height: 100vh !important;
-    padding-top: 0 !important;
-}
-::-webkit-scrollbar { display: none !important; }
-* { scrollbar-width: none !important; -ms-overflow-style: none !important; }
-.main .block-container { padding: 0 !important; margin-top: -2rem !important; }
-
-.login-wrapper {
-    display: flex; justify-content: center; align-items: flex-start;
-    font-family: 'Inter', sans-serif; padding-top: 0;
-}
-.login-container {
-    background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 20px;
-    padding: 1rem 1.5rem; width: 100%; max-width: 380px; text-align: center;
-    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
-}
-.login-title {
-    color: white; font-size: 1.1rem; font-weight: 800; margin-bottom: 0.3rem;
-    letter-spacing: -0.03em;
-}
-.oauth-btn {
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-    width: 100%; padding: 0.6rem; border-radius: 10px; font-weight: 600;
-    transition: all 0.2s; text-decoration: none; margin-bottom: 0.5rem;
-    font-size: 0.9rem;
-}
-.oauth-google { background: white; color: #1f2937; }
-.oauth-microsoft { background: rgba(255,255,255,0.05); color: #00a4ef; border: 1px solid rgba(255,255,255,0.1); }
-.login-divider {
-    display: flex; align-items: center; gap: 1rem; margin: 0.8rem 0;
-    color: rgba(255,255,255,0.2); font-size: 0.7rem; font-weight: 600; letter-spacing: 1px;
-}
-.login-divider::before, .login-divider::after { content:''; flex:1; height:1px; background: rgba(255,255,255,0.1); }
+[data-testid="stSidebar"] {{ display: none; }}
+[data-testid="collapsedControl"] {{ display: none; }}
+[data-testid="stHeader"] {{ display: none; }}
+.login-wrapper {{
+    min-height: 80vh; display: flex; align-items: center; justify-content: center;
+    position: relative;
+}}
+.login-wrapper::before {{
+    content:''; position:absolute; width:500px; height:500px;
+    background: radial-gradient(circle, rgba(123,47,247,0.12), transparent 70%);
+    top: -10%; left: 30%; pointer-events:none; animation: loginGlow 6s ease-in-out infinite;
+}}
+.login-wrapper::after {{
+    content:''; position:absolute; width:350px; height:350px;
+    background: radial-gradient(circle, rgba(0,210,255,0.06), transparent 70%);
+    bottom: 5%; right: 25%; pointer-events:none; animation: loginGlow 8s ease-in-out infinite reverse;
+}}
+@keyframes loginGlow {{
+    0%,100% {{ opacity:0.5; transform:scale(1); }}
+    50% {{ opacity:1; transform:scale(1.15); }}
+}}
+.login-container {{
+    max-width: 440px; width: 100%; position: relative; z-index: 2;
+    background: rgba(10,10,26,0.85); backdrop-filter: blur(24px);
+    border: 1px solid rgba(123,47,247,0.18);
+    border-radius: 24px; padding: 3rem 2.5rem; text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 100px rgba(123,47,247,0.06);
+}}
+.login-title {{ font-size: 2rem; font-weight: 900; margin-bottom: 0.5rem; color: #f0f0f5; letter-spacing:-0.02em; }}
+.login-sub {{ font-size: 0.88rem; color: rgba(240,240,245,0.45); margin-bottom: 2rem; line-height:1.5; }}
+.oauth-btn {{
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    padding: 13px 20px; border-radius: 12px; text-decoration: none;
+    font-weight: 600; font-size: 0.9rem; font-family: 'Inter', sans-serif;
+    transition: all 0.25s cubic-bezier(0.4,0,0.2,1); cursor: pointer;
+}}
+.oauth-google {{
+    background: #ffffff; color: #3c4043; border: 1px solid #e0e0e0; margin-bottom: 12px;
+}}
+.oauth-google:hover {{ transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.15); }}
+.oauth-microsoft {{
+    background: #1a1a2e; color: #e0e0e8; border: 1px solid rgba(255,255,255,0.12); margin-bottom: 8px;
+}}
+.oauth-microsoft:hover {{ transform: translateY(-2px); background: #222240; box-shadow: 0 8px 25px rgba(0,0,0,0.3); }}
+.login-divider {{
+    display: flex; align-items: center; gap: 1rem; margin: 1.5rem 0;
+    color: rgba(255,255,255,0.2); font-size: 0.75rem; font-weight: 600; letter-spacing: 1px;
+}}
+.login-divider::before, .login-divider::after {{
+    content:''; flex:1; height:1px; background: rgba(255,255,255,0.08);
+}}
 </style>
-"""
-    
-    login_html = f"""
 <div class="login-wrapper">
 <div class="login-container">
-<a href="{home_url}" target="_self" style="position:absolute; top:15px; left:15px; color:rgba(255,255,255,0.4); text-decoration:none; font-size:0.75rem; font-weight:600;">← Home</a>
-<img src="data:image/png;base64,{logo_b64}" style="height: 3.2rem; margin-bottom: 0.8rem; border-radius: 8px;">
+<a href="http://localhost:8000" style="position:absolute; top:20px; left:20px; color:rgba(255,255,255,0.4); text-decoration:none; font-size:0.85rem; font-weight:600; transition:color 0.2s;">← Back to Home</a>
+<img src="data:image/png;base64,{logo_b64}" style="height: 4.5rem; margin-bottom: 1rem; filter: drop-shadow(0 4px 12px rgba(123,47,247,0.3)); border-radius: 12px;">
 <div class="login-title">Welcome Back</div>
+<div class="login-sub">Sign in or create an account to start your free trial.<br>No credit card required.</div>
+
 <a href="{google_href}" target="_self" class="oauth-btn oauth-google">
 <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
 Continue with Google
 </a>
+
 <a href="{microsoft_href}" target="_self" class="oauth-btn oauth-microsoft">
 <svg width="18" height="18" viewBox="0 0 21 21"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
 Continue with Microsoft
 </a>
-<div class="login-divider">OR</div>
-<form action="" method="get">
-<input type="hidden" name="page" value="app">
-<input type="email" name="login_email" placeholder="name@company.com" style="background: rgba(13,13,26,0.8); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 0.6rem; width: 100%; color: white; font-size: 0.9rem; margin-bottom: 0.8rem; outline: none; box-sizing: border-box;" required>
-<button type="submit" style="background: #7b2ff7; color: white; border: none; border-radius: 10px; padding: 0.7rem; width: 100%; font-weight: 700; cursor: pointer; font-size: 0.9rem;">Continue with Email →</button>
-</form>
-<div style="margin-top:0.8rem;">
-<a href="?page=app&login_email=guest_{int(time.time())}@dataliedetector.com" target="_self" style="color:rgba(255,255,255,0.4); text-decoration:none; font-size:0.8rem; font-weight: 600;">Continue as Guest</a>
 </div>
 </div>
-</div>
-"""
-    
-    st.markdown(css_code + login_html, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
+
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.markdown('<div class="login-divider">OR</div>', unsafe_allow_html=True)
+
+        email_input = st.text_input("Email Address", placeholder="name@company.com", label_visibility="collapsed")
+        if st.button("Continue with Email →", type="primary", use_container_width=True):
+            if "@" in email_input:
+                user = login_user(email_input)
+                st.session_state.user_email = user["email"]
+                st.rerun()
+            else:
+                st.error("Please enter a valid email address.")
+
     st.stop()
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -702,8 +564,7 @@ with st.sidebar:
         st.caption(f"Plan: {user['subscription'].upper()}")
         if st.button("Logout"):
             st.session_state.user_email = None
-            st.markdown('<meta http-equiv="refresh" content="0; url=http://localhost:8000/">', unsafe_allow_html=True)
-            st.stop()
+            st.rerun()
         st.divider()
 
     st.markdown("### ⚙️ Settings")
@@ -729,7 +590,7 @@ with st.sidebar:
 # ═══════════════════════════════════════════════════════════════════════
 # HERO HEADER
 # ═══════════════════════════════════════════════════════════════════════
-logo_html = f'<img src="data:image/png;base64,{logo_b64}" style="height: 4.5rem; vertical-align: middle; margin-right: 18px; filter: drop-shadow(0 4px 15px rgba(123,47,247,0.4));">' if logo_b64 else '🕵️'
+logo_html = f'<img src="data:image/png;base64,{logo_b64}" style="height: 1.2em; vertical-align: middle; margin-right: 12px;">' if logo_b64 else '🕵️'
 st.markdown(f"""
 <div class="hero-header">
     <h1>{logo_html} Data Lie Detector</h1>
@@ -740,8 +601,8 @@ st.markdown(f"""
 has_access, reason, trial_status = check_access(st.session_state.user_email)
 
 st.markdown(f"""
-<div style="text-align:center; margin-bottom:0.8rem; margin-top:0.5rem;">
-    <span style="background:rgba(123,47,247,0.1); border:1px solid rgba(123,47,247,0.2); color:#ffffff; padding:0.3rem 1.2rem; border-radius:50px; font-size:0.8rem; font-weight:600; letter-spacing:0.5px;">{trial_status}</span>
+<div style="text-align:center; margin-bottom:1.5rem;">
+    <span style="background:rgba(123,47,247,0.1); border:1px solid rgba(123,47,247,0.2); color:rgba(123,47,247,0.7); padding:0.3rem 1rem; border-radius:50px; font-size:0.75rem; font-weight:600; letter-spacing:0.5px;">{trial_status}</span>
 </div>""", unsafe_allow_html=True)
 
 if not has_access:
@@ -1185,10 +1046,10 @@ if files:
 else:
     # ── EMPTY STATE ──
     st.markdown("""
-    <div style="text-align:center; padding:1rem 2rem; position:relative;">
+    <div style="text-align:center; padding:5rem 2rem; position:relative;">
         <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:300px; height:300px; background:radial-gradient(circle, rgba(123,47,247,0.06), transparent 70%); pointer-events:none;"></div>
-        <div style="font-size:3rem; margin-bottom:0.4rem; filter:drop-shadow(0 4px 12px rgba(123,47,247,0.2)); position:relative;">📁</div>
-        <div style="font-size:1.2rem; font-weight:800; color:#e0e0f0; margin-bottom:0.3rem; position:relative;">Drop your CSV file above</div>
-        <div style="font-size:0.85rem; color:rgba(240,240,245,0.3); max-width:400px; margin:0 auto; line-height:1.4; position:relative;">Your data stays 100% local — nothing is sent to any server unless you explicitly use AI Insight.</div>
+        <div style="font-size:4rem; margin-bottom:1rem; filter:drop-shadow(0 4px 12px rgba(123,47,247,0.2)); position:relative;">📁</div>
+        <div style="font-size:1.3rem; font-weight:800; color:#e0e0f0; margin-bottom:0.6rem; position:relative;">Drop your CSV file above</div>
+        <div style="font-size:0.88rem; color:rgba(240,240,245,0.35); max-width:400px; margin:0 auto; line-height:1.6; position:relative;">Your data stays 100% local — nothing is sent to any server unless you explicitly use AI Insight.</div>
     </div>
     """, unsafe_allow_html=True)

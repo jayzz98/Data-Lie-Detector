@@ -1,0 +1,8 @@
+run = "python start.py"
+entrypoint = "main.py"
+
+[languages.python]
+python_path = "python3"
+
+[packager]
+language = "python3"
