@@ -132,10 +132,11 @@ if page == "landing":
                     if img_b64:
                         html = html.replace(f'src="assets/{img_name}"', f'src="data:image/png;base64,{img_b64}"')
 
-        # Fix internal links
+        # Fix internal links - replace href AND remove target="_top" (breaks inside iframes)
         html = html.replace('href="/app"', 'href="?page=app"')
         html = html.replace('href="/app?plan=', 'href="?page=app&plan=')
-        html = re.sub(r'target="_blank"', 'target="_self"', html)
+        html = re.sub(r'target="_blank"', '', html)
+        html = re.sub(r'target="_top"', '', html)
 
         # Fix SVG icons for st.html() sanitization (using base64 images)
         import re as _re
@@ -176,24 +177,37 @@ if page == "landing":
                 document.querySelectorAll('.price-card.featured').forEach(function(el) {
                     el.style.transform = 'scale(1.03)';
                 });
-                // Top-level navigation fix for iframe links
+                // Intercept ALL link clicks and navigate the parent window
                 document.addEventListener('click', function(e) {
                     var target = e.target.closest('a');
                     if (target) {
                         var href = target.getAttribute('href');
-                        if (href && href.startsWith('?page=app')) {
+                        if (href && (href.indexOf('?page=app') !== -1 || href.indexOf('page=app') !== -1)) {
                             e.preventDefault();
-                            window.top.location.search = href;
+                            e.stopPropagation();
+                            e.stopImmediatePropagation();
+                            // Navigate the TOP window (parent of iframe)
+                            window.top.location.href = window.top.location.origin + window.top.location.pathname + href;
+                            return false;
                         }
                     }
                 }, true);
+
+                // Auto-resize iframe to fit content (removes extra whitespace)
+                setTimeout(function() {
+                    var actualHeight = document.documentElement.scrollHeight;
+                    if (window.frameElement) {
+                        window.frameElement.style.height = actualHeight + 'px';
+                    }
+                }, 500);
             });
         </script>
         """
         html = html.replace("</head>", f"{overrides}</head>")
 
-        components.html(html, height=5000, scrolling=True)
+        components.html(html, height=4200, scrolling=True)
         st.stop()
+
 
     except Exception as e:
         st.error(f"Landing Error: {e}")
