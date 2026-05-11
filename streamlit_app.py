@@ -540,6 +540,9 @@ if not st.session_state.user_email:
 
         clear_params()
         if email:
+            if st.session_state.get("user_email"):
+                st.session_state.user_email = None
+                st.rerun()
             user = login_user(email)
             st.session_state.user_email = user["email"]
             st.rerun()
@@ -554,6 +557,9 @@ if not st.session_state.user_email:
     if "login" in params and not has_oauth_credentials():
         provider = get_param("login").capitalize()
         clear_params()
+        if st.session_state.get("user_email"):
+            st.session_state.user_email = None
+            st.rerun()
         st.session_state.oauth_provider = provider
         st.rerun()
 
@@ -605,6 +611,9 @@ border: 1px solid rgba(123,47,247,0.3); border-radius: 16px; padding: 2.5rem; te
     if "login_email" in params:
         email = get_param("login_email")
         clear_params()
+        if st.session_state.get("user_email"):
+            st.session_state.user_email = None
+            st.rerun()
         user = login_user(email)
         st.session_state.user_email = user["email"]
         st.rerun()
