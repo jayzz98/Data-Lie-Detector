@@ -208,14 +208,8 @@ from utils.auth import (
 logo_b64 = get_base64_image("assets/logo.png")
 
 # ═══════════════════════════════════════════════════════════════════════
-# PAGE CONFIG & PREMIUM CSS
+# PREMIUM CSS
 # ═══════════════════════════════════════════════════════════════════════
-st.set_page_config(
-    page_title="Data Lie Detector",
-    page_icon="landing/logo.png" if os.path.exists("landing/logo.png") else "🕵️",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
 
 st.markdown("""
 <style>
