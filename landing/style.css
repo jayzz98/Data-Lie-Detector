@@ -99,7 +99,7 @@ body {
 }
 
 .nav-logo {
-    font-size: 1.5rem;
+    font-size: 1.875rem;
     font-weight: 800;
     text-decoration: none;
     color: var(--text-primary);
@@ -109,7 +109,7 @@ body {
 }
 
 .nav-logo img {
-    height: 1.8em;
+    height: 1.6em;
     vertical-align: middle;
 }
 
@@ -799,9 +799,24 @@ body {
 
 .price-features li {
     padding: 0.3rem 0;
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     color: var(--text-secondary);
+    display: flex;
+    align-items: center;
 }
+
+.icon-check, .icon-cross {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke-width: 3px;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+.icon-check { stroke: #00d2ff; }
+.icon-cross { stroke: rgba(255, 255, 255, 0.2); }
 
 .price-card .btn {
     width: 100%;
