@@ -156,12 +156,27 @@ if page == "landing":
         # Force all elements visible and add Top-Level Navigation fix
         overrides = """
         <style>
+            /* Force all animation-dependent elements to be visible */
             .feature-card, .step, .price-card { opacity: 1 !important; transform: none !important; }
             .price-card.featured { transform: scale(1.03) !important; }
-            html, body { background: #06060f !important; overflow: hidden !important; margin: 0; padding: 0; }
+            .feature-card.animate-in, .step.animate-in, .price-card.animate-in { opacity: 1 !important; transform: none !important; }
+            .price-card.featured.animate-in { transform: scale(1.03) !important; }
+            /* Allow vertical scrolling - DO NOT use overflow:hidden on body */
+            html, body { background: #06060f !important; overflow-x: hidden !important; overflow-y: auto !important; margin: 0; padding: 0; height: auto !important; }
         </style>
         <script>
             document.addEventListener('DOMContentLoaded', function() {
+                // Force all animated elements visible immediately
+                document.querySelectorAll('.feature-card, .step, .price-card').forEach(function(el) {
+                    el.classList.add('animate-in');
+                    el.style.opacity = '1';
+                    el.style.transform = 'none';
+                });
+                // Fix featured card scale
+                document.querySelectorAll('.price-card.featured').forEach(function(el) {
+                    el.style.transform = 'scale(1.03)';
+                });
+                // Top-level navigation fix for iframe links
                 document.addEventListener('click', function(e) {
                     var target = e.target.closest('a');
                     if (target) {
@@ -179,6 +194,7 @@ if page == "landing":
 
         components.html(html, height=5000, scrolling=True)
         st.stop()
+
     except Exception as e:
         st.error(f"Landing Error: {e}")
 
@@ -612,7 +628,7 @@ border: 1px solid rgba(123,47,247,0.3); border-radius: 16px; padding: 2.5rem; te
         st.rerun()
 
     # ── 4. Full-Page Login UI ──
-    home_url = "http://localhost:8000/"
+    home_url = "?page=landing"  # Works on both local (JS redirects to 8000) and Cloud
     
     css_code = """
 <style>
@@ -747,8 +763,8 @@ with st.sidebar:
         st.caption(f"Plan: {user['subscription'].upper()}")
         if st.button("Logout"):
             st.session_state.user_email = None
-            st.markdown('<meta http-equiv="refresh" content="0; url=http://localhost:8000/">', unsafe_allow_html=True)
-            st.stop()
+            clear_params()
+            st.rerun()
         st.divider()
 
     st.markdown("### ⚙️ Settings")
