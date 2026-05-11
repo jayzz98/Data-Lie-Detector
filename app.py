@@ -212,10 +212,10 @@ logo_b64 = get_base64_image("assets/logo.png")
 
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap');
 
     /* ══ GLOBAL ══ */
-    .stApp { font-family: 'Inter', -apple-system, sans-serif; }
+    .stApp { font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; }
     html, body, .stApp { background: #06060f !important; overflow-x: hidden !important; }
     /* Hide ALL streamlit standard UI */
     header, footer, [data-testid="stHeader"], [data-testid="stFooter"], #MainMenu, .stDeployButton, [data-testid="stToolbar"], [data-testid="stDecoration"] { 
@@ -631,7 +631,7 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stVertical
 
 .login-wrapper {
     display: flex; justify-content: center; align-items: flex-start;
-    font-family: 'Inter', sans-serif; padding-top: 0;
+    font-family: 'Plus Jakarta Sans', sans-serif; padding-top: 0;
 }
 .login-container {
     background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(24px);
