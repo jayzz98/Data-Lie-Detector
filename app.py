@@ -246,9 +246,8 @@ st.markdown("""
         pointer-events:none;
     }
     .hero-header h1 {
-        font-size: 1.8rem; font-weight: 900; position:relative;
-        background: linear-gradient(135deg, #00d2ff, #7b2ff7 50%, #ff6bcb);
-        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        font-size: 2.5rem; font-weight: 900; position:relative;
+        color: white;
         margin-bottom: 0.2rem; letter-spacing:-0.02em;
     }
     .hero-header p { color: rgba(240,240,245,0.5); font-size: 0.85rem; font-weight: 400; position:relative; }
@@ -646,7 +645,7 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stVertical
 .oauth-btn {
     display: flex; align-items: center; justify-content: center; gap: 8px;
     width: 100%; padding: 0.6rem; border-radius: 10px; font-weight: 600;
-    transition: all 0.2s; text-decoration: none; margin-bottom: 0.5rem;
+    transition: all 0.2s; text-decoration: none !important; margin-bottom: 0.5rem;
     font-size: 0.9rem;
 }
 .oauth-google { background: white; color: #1f2937; }
@@ -662,7 +661,7 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stVertical
     login_html = f"""
 <div class="login-wrapper">
 <div class="login-container">
-<a href="{home_url}" target="_self" style="position:absolute; top:15px; left:15px; color:rgba(255,255,255,0.4); text-decoration:none; font-size:0.75rem; font-weight:600;">← Home</a>
+<a href="{home_url}" target="_self" style="position:absolute; top:20px; left:20px; background: rgba(255,255,255,0.1); padding: 0.5rem 1rem; border-radius: 8px; color: white; text-decoration: none !important; font-size: 0.85rem; font-weight: 700; border: 1px solid rgba(255,255,255,0.2);">← Home</a>
 <img src="data:image/png;base64,{logo_b64}" style="height: 3.2rem; margin-bottom: 0.8rem; border-radius: 8px;">
 <div class="login-title">Welcome Back</div>
 <a href="{google_href}" target="_self" class="oauth-btn oauth-google">
