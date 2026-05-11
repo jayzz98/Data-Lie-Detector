@@ -8,6 +8,16 @@ import re
 import streamlit.components.v1 as components
 
 # ─────────────────────────────────────────────────────────
+# 0. INITIALIZATION
+# ─────────────────────────────────────────────────────────
+st.set_page_config(
+    page_title="Data Lie Detector",
+    page_icon="🕵️",
+    layout="wide",
+    initial_sidebar_state="auto"
+)
+
+# ─────────────────────────────────────────────────────────
 # 1. ROUTING & UTILS
 # ─────────────────────────────────────────────────────────
 def get_all_params():
@@ -49,8 +59,16 @@ if any(get_param(k) for k in auth_triggers) or st.session_state.user_email:
 # 2. LANDING PAGE
 # ─────────────────────────────────────────────────────────
 if page == "landing":
-    st.markdown('<meta http-equiv="refresh" content="0; url=http://localhost:8000/">', unsafe_allow_html=True)
-    st.stop()
+    # Smart Redirect: Only send to port 8000 if running locally
+    st.markdown("""
+    <script>
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            if (window.location.port === '8501') {
+                window.top.location.href = 'http://localhost:8000/';
+            }
+        }
+    </script>
+    """, unsafe_allow_html=True)
     
     # Nuclear CSS for landing page
     st.markdown("""
@@ -119,16 +137,47 @@ if page == "landing":
         html = html.replace('href="/app?plan=', 'href="?page=app&plan=')
         html = re.sub(r'target="_blank"', 'target="_self"', html)
 
-        # Inject auto-resize script
+        # Fix SVG icons for st.html() sanitization (using base64 images)
+        import re as _re
+        import base64 as _base64
+
+        inline_grad = '<defs><linearGradient id="icon-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#ff6bcb"/><stop offset="100%" stop-color="#7b2ff7"/></linearGradient></defs>'
+
+        def _svg_to_img(match):
+            svg_content = match.group(0)
+            if 'xmlns=' not in svg_content:
+                svg_content = svg_content.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ')
+            svg_content = svg_content.replace('>', f'>{inline_grad}', 1)
+            b64_svg = _base64.b64encode(svg_content.encode('utf-8')).decode('utf-8')
+            return f'<img src="data:image/svg+xml;base64,{b64_svg}" style="width: 32px; height: 32px; filter: drop-shadow(0 0 8px rgba(123,47,247,0.6));">'
+
+        html = _re.sub(r'<svg\b[^>]*>.*?</svg>', _svg_to_img, html, flags=_re.DOTALL)
+
+        # Force all elements visible and add Top-Level Navigation fix
         overrides = """
         <style>
             .feature-card, .step, .price-card { opacity: 1 !important; transform: none !important; }
+            .price-card.featured { transform: scale(1.03) !important; }
             html, body { background: #06060f !important; overflow: hidden !important; margin: 0; padding: 0; }
         </style>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                document.addEventListener('click', function(e) {
+                    var target = e.target.closest('a');
+                    if (target) {
+                        var href = target.getAttribute('href');
+                        if (href && href.startsWith('?page=app')) {
+                            e.preventDefault();
+                            window.top.location.search = href;
+                        }
+                    }
+                }, true);
+            });
+        </script>
         """
         html = html.replace("</head>", f"{overrides}</head>")
 
-        components.html(html, height=5000, scrolling=False)
+        components.html(html, height=5000, scrolling=True)
         st.stop()
     except Exception as e:
         st.error(f"Landing Error: {e}")
