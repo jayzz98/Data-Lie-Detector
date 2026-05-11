@@ -661,7 +661,10 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stVertical
     login_html = f"""
 <div class="login-wrapper">
 <div class="login-container">
-<a href="{home_url}" target="_self" style="position:absolute; top:20px; left:20px; background: rgba(255,255,255,0.1); padding: 0.5rem 1rem; border-radius: 8px; color: white; text-decoration: none !important; font-size: 0.85rem; font-weight: 700; border: 1px solid rgba(255,255,255,0.2);">← Home</a>
+<a href="{home_url}" target="_self" style="position:absolute; top:20px; left:20px; color:rgba(255,255,255,0.6); text-decoration:none !important; border-bottom:none !important; box-shadow:none !important; font-size:0.85rem; font-weight:600; display:flex; align-items:center; gap:6px;">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+    Home
+</a>
 <img src="data:image/png;base64,{logo_b64}" style="height: 3.2rem; margin-bottom: 0.8rem; border-radius: 8px;">
 <div class="login-title">Welcome Back</div>
 <a href="{google_href}" target="_self" class="oauth-btn oauth-google">
