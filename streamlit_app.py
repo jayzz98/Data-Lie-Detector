@@ -50,7 +50,7 @@ if "user_email" not in st.session_state:
 
 # Force App page if any auth-related params are present or user is logged in
 auth_triggers = ["login_email", "code", "login", "plan", "state", "page"]
-if any(get_param(k) for k in auth_triggers) or st.session_state.user_email:
+if any(get_param(k) for k in auth_triggers) or st.session_state.user_email or st.session_state.get("pending_plan"):
     # Special case: if page is specifically 'landing', don't force 'app'
     if get_param("page") != "landing":
         page = "app"
