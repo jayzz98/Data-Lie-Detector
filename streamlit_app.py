@@ -520,8 +520,8 @@ if "counted_files" not in st.session_state:
 params = get_all_params()
 if "plan" in params:
     st.session_state.pending_plan = get_param("plan")
-    clear_params()
-    st.rerun()
+    # Do not clear_params or rerun here, let it fall through to login logic
+
 
 # ═══════════════════════════════════════════════════════════════════════
 # MAIN APP / PAYWALL
@@ -531,11 +531,18 @@ if not st.session_state.user_email:
     params = get_all_params()
     if "code" in params and "state" in params:
         code = get_param("code")
-        state = get_param("state")
+        state_full = get_param("state")
+        
+        # Extract provider and optional plan from state (e.g. "google|monthly")
+        state_parts = state_full.split("|")
+        provider_state = state_parts[0]
+        if len(state_parts) > 1:
+            st.session_state.pending_plan = state_parts[1]
+            
         email = None
-        if state == "google":
+        if provider_state == "google":
             email = verify_google_code(code)
-        elif state == "microsoft":
+        elif provider_state == "microsoft":
             email = verify_microsoft_code(code)
 
         clear_params()
@@ -550,8 +557,9 @@ if not st.session_state.user_email:
             st.error("Authentication failed. Please try again.")
 
     # ── 2. Build OAuth URLs ──
-    google_url = get_google_login_url()
-    microsoft_url = get_microsoft_login_url()
+    current_plan = st.session_state.get("pending_plan")
+    google_url = get_google_login_url(current_plan)
+    microsoft_url = get_microsoft_login_url(current_plan)
 
     # If credentials are missing, fall back to a simulated form
     if "login" in params and not has_oauth_credentials():
@@ -604,8 +612,9 @@ border: 1px solid rgba(123,47,247,0.3); border-radius: 16px; padding: 2.5rem; te
         st.stop()
 
     # ── 3. Determine button hrefs ──
-    google_href = google_url if google_url else "?page=app&login=google"
-    microsoft_href = microsoft_url if microsoft_url else "?page=app&login=microsoft"
+    plan_q = f"&plan={st.session_state.pending_plan}" if st.session_state.get("pending_plan") else ""
+    google_href = google_url if google_url else f"?page=app&login=google{plan_q}"
+    microsoft_href = microsoft_url if microsoft_url else f"?page=app&login=microsoft{plan_q}"
 
     # ── 3. Handle Email/Guest Login via URL ──
     if "login_email" in params:
@@ -687,11 +696,12 @@ Continue with Microsoft
 <div class="login-divider">OR</div>
 <form action="" method="get">
 <input type="hidden" name="page" value="app">
+{f'<input type="hidden" name="plan" value="{st.session_state.pending_plan}">' if st.session_state.get("pending_plan") else ""}
 <input type="email" name="login_email" placeholder="name@company.com" style="background: rgba(13,13,26,0.8); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 0.6rem; width: 100%; color: white; font-size: 0.9rem; margin-bottom: 0.8rem; outline: none; box-sizing: border-box;" required>
 <button type="submit" style="background: #7b2ff7; color: white; border: none; border-radius: 10px; padding: 0.7rem; width: 100%; font-weight: 700; cursor: pointer; font-size: 0.9rem;">Continue with Email →</button>
 </form>
 <div style="margin-top:0.8rem;">
-<a href="?page=app&login_email=guest_{int(time.time())}@dataliedetector.com" target="_self" style="color:rgba(255,255,255,0.4); text-decoration:none; font-size:0.8rem; font-weight: 600;">Continue as Guest</a>
+<a href="?page=app&login_email=guest_{int(time.time())}@dataliedetector.com{plan_q}" target="_self" style="color:rgba(255,255,255,0.4); text-decoration:none; font-size:0.8rem; font-weight: 600;">Continue as Guest</a>
 </div>
 </div>
 </div>

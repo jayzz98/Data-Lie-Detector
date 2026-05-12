@@ -30,7 +30,7 @@ MICROSOFT_TENANT_ID = os.getenv("MICROSOFT_TENANT_ID", "common")
 # ═══════════════════════════════════════════════════════════════════════
 # GOOGLE OAUTH FLOW
 # ═══════════════════════════════════════════════════════════════════════
-def get_google_login_url():
+def get_google_login_url(plan=None):
     """Build the real Google OAuth2 authorization URL."""
     if not GOOGLE_CLIENT_ID:
         return None
@@ -41,7 +41,7 @@ def get_google_login_url():
         "scope": "openid email profile",
         "access_type": "offline",
         "prompt": "select_account",
-        "state": "google",
+        "state": f"google|{plan}" if plan else "google",
     })
     return f"https://accounts.google.com/o/oauth2/v2/auth?{params}"
 
@@ -71,7 +71,7 @@ def verify_google_code(code: str):
 # ═══════════════════════════════════════════════════════════════════════
 # MICROSOFT OAUTH FLOW
 # ═══════════════════════════════════════════════════════════════════════
-def get_microsoft_login_url():
+def get_microsoft_login_url(plan=None):
     """Build the real Microsoft OAuth2 authorization URL."""
     if not MICROSOFT_CLIENT_ID:
         return None
@@ -82,7 +82,7 @@ def get_microsoft_login_url():
         "response_type": "code",
         "scope": "openid email profile User.Read",
         "response_mode": "query",
-        "state": "microsoft",
+        "state": f"microsoft|{plan}" if plan else "microsoft",
     })
     return f"{base}?{params}"
 
