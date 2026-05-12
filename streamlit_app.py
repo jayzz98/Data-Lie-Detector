@@ -731,28 +731,58 @@ if st.session_state.get("pending_plan"):
 
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.markdown("**Select Payment Method:**")
-        p1, p2 = st.columns(2)
-        with p1:
-            if st.button("Pay with Card", type="primary", use_container_width=True):
-                upgrade_subscription(st.session_state.user_email, plan)
+        if not st.session_state.get("checkout_method_pending"):
+            st.markdown("**Select Payment Method:**")
+            p1, p2, p3 = st.columns(3)
+            with p1:
+                if st.button("💳 Card", type="primary", use_container_width=True):
+                    st.session_state.checkout_method_pending = "card"
+                    st.rerun()
+            with p2:
+                if st.button("📱 UPI", use_container_width=True):
+                    st.session_state.checkout_method_pending = "upi"
+                    st.rerun()
+            with p3:
+                if st.button("🅿️ PayPal", use_container_width=True):
+                    st.session_state.checkout_method_pending = "paypal"
+                    st.rerun()
+            if st.button("Cancel", use_container_width=True):
                 del st.session_state["pending_plan"]
-                st.success(f"Payment successful! You are now on the **{plan_label}** plan.")
-                st.balloons()
-                import time; time.sleep(2)
                 st.rerun()
-        with p2:
-            if st.button("Pay with UPI", use_container_width=True):
-                upgrade_subscription(st.session_state.user_email, plan)
-                del st.session_state["pending_plan"]
-                st.success(f"Payment successful! You are now on the **{plan_label}** plan.")
-                st.balloons()
-                import time; time.sleep(2)
-                st.rerun()
-
-        if st.button("Cancel", use_container_width=True):
-            del st.session_state["pending_plan"]
-            st.rerun()
+        else:
+            method = st.session_state.checkout_method_pending
+            st.markdown(f"### {'💳 Card Details' if method == 'card' else '📱 UPI Details' if method == 'upi' else '🅿️ PayPal Checkout'}")
+            
+            with st.form("checkout_form"):
+                if method == "card":
+                    st.text_input("Card Number", placeholder="0000 0000 0000 0000", max_chars=19)
+                    c1, c2 = st.columns(2)
+                    c1.text_input("Expiry Date", placeholder="MM/YY", max_chars=5)
+                    c2.text_input("CVC", placeholder="123", max_chars=3, type="password")
+                    st.text_input("Cardholder Name", placeholder="John Doe")
+                elif method == "upi":
+                    st.text_input("Enter your UPI ID", placeholder="username@upi")
+                else:
+                    st.text_input("PayPal Email Address", placeholder="name@example.com")
+                
+                st.markdown("<br>", unsafe_allow_html=True)
+                submit_col, cancel_col = st.columns(2)
+                with submit_col:
+                    submitted = st.form_submit_button("Confirm Payment", type="primary", use_container_width=True)
+                with cancel_col:
+                    cancelled = st.form_submit_button("Back", use_container_width=True)
+                    
+                if submitted:
+                    upgrade_subscription(st.session_state.user_email, plan)
+                    del st.session_state["pending_plan"]
+                    del st.session_state["checkout_method_pending"]
+                    st.success(f"Payment successful! You are now on the **{plan_label}** plan.")
+                    st.balloons()
+                    import time; time.sleep(2)
+                    st.rerun()
+                elif cancelled:
+                    del st.session_state["checkout_method_pending"]
+                    st.rerun()
 
     st.stop()
 
@@ -853,29 +883,58 @@ if not has_access:
     if "selected_plan" in st.session_state:
         st.divider()
         st.markdown(f"**Selected Plan:** {st.session_state.selected_plan.upper()}")
-        st.markdown("Select Payment Method:")
-        p1, p2, p3 = st.columns(3)
-        with p1:
-            if st.button("💳 Pay with Card", use_container_width=True):
-                upgrade_subscription(st.session_state.user_email, st.session_state.selected_plan)
+        
+        if not st.session_state.get("checkout_method_selected"):
+            st.markdown("Select Payment Method:")
+            p1, p2, p3 = st.columns(3)
+            with p1:
+                if st.button("💳 Pay with Card", use_container_width=True):
+                    st.session_state.checkout_method_selected = "card"
+                    st.rerun()
+            with p2:
+                if st.button("📱 Pay with UPI", use_container_width=True):
+                    st.session_state.checkout_method_selected = "upi"
+                    st.rerun()
+            with p3:
+                if st.button("🅿️ Pay with PayPal", use_container_width=True):
+                    st.session_state.checkout_method_selected = "paypal"
+                    st.rerun()
+            if st.button("Cancel", use_container_width=True):
                 del st.session_state.selected_plan
-                st.success("Payment Successful! Upgrading account...")
-                import time; time.sleep(1)
                 st.rerun()
-        with p2:
-            if st.button("📱 Pay with UPI", use_container_width=True):
-                upgrade_subscription(st.session_state.user_email, st.session_state.selected_plan)
-                del st.session_state.selected_plan
-                st.success("UPI Payment Successful! Upgrading account...")
-                import time; time.sleep(1)
-                st.rerun()
-        with p3:
-            if st.button("🅿️ Pay with PayPal", use_container_width=True):
-                upgrade_subscription(st.session_state.user_email, st.session_state.selected_plan)
-                del st.session_state.selected_plan
-                st.success("PayPal Payment Successful! Upgrading account...")
-                import time; time.sleep(1)
-                st.rerun()
+        else:
+            method = st.session_state.checkout_method_selected
+            st.markdown(f"### {'💳 Card Details' if method == 'card' else '📱 UPI Details' if method == 'upi' else '🅿️ PayPal Checkout'}")
+            
+            with st.form("checkout_form_selected"):
+                if method == "card":
+                    st.text_input("Card Number", placeholder="0000 0000 0000 0000", max_chars=19)
+                    c1, c2 = st.columns(2)
+                    c1.text_input("Expiry Date", placeholder="MM/YY", max_chars=5)
+                    c2.text_input("CVC", placeholder="123", max_chars=3, type="password")
+                    st.text_input("Cardholder Name", placeholder="John Doe")
+                elif method == "upi":
+                    st.text_input("Enter your UPI ID", placeholder="username@upi")
+                else:
+                    st.text_input("PayPal Email Address", placeholder="name@example.com")
+                
+                st.markdown("<br>", unsafe_allow_html=True)
+                submit_col, cancel_col = st.columns(2)
+                with submit_col:
+                    submitted = st.form_submit_button("Confirm Payment", type="primary", use_container_width=True)
+                with cancel_col:
+                    cancelled = st.form_submit_button("Back", use_container_width=True)
+                    
+                if submitted:
+                    upgrade_subscription(st.session_state.user_email, st.session_state.selected_plan)
+                    del st.session_state.selected_plan
+                    del st.session_state.checkout_method_selected
+                    st.success("Payment Successful! Upgrading account...")
+                    import time; time.sleep(1)
+                    st.rerun()
+                elif cancelled:
+                    del st.session_state.checkout_method_selected
+                    st.rerun()
     st.stop()
 
 
