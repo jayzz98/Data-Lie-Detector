@@ -8,7 +8,7 @@ import re
 import streamlit.components.v1 as components
 
 # ─────────────────────────────────────────────────────────
-# 0. INITIALIZATION
+# 0. INITIALIZATION & THEME ENGINE
 # ─────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Data Lie Detector",
@@ -17,23 +17,23 @@ st.set_page_config(
     initial_sidebar_state="auto"
 )
 
-# ─────────────────────────────────────────────────────────
-# 1. ROUTING & UTILS
-# ─────────────────────────────────────────────────────────
-def get_all_params():
-    try: return st.query_params
-    except AttributeError: return st.experimental_get_query_params()
+# Persistent theme state
+if "theme" not in st.session_state:
+    st.session_state.theme = "dark"
 
-def get_param(key, default=None):
-    p = get_all_params()
-    if key in p:
-        val = p[key]
-        return val[0] if isinstance(val, list) else val
-    return default
+# Handle theme toggle from URL params
+params = st.query_params
+if "toggle_theme" in params:
+    st.session_state.theme = "light" if st.session_state.theme == "dark" else "dark"
+    # Clean up URL and stay on current page
+    current_page = params.get("page", "landing")
+    st.query_params.from_dict({"page": current_page})
+    st.rerun()
 
-def clear_params():
-    try: st.query_params.clear()
-    except: st.experimental_set_query_params()
+is_dark = st.session_state.theme == "dark"
+
+def toggle_theme():
+    st.session_state.theme = "light" if st.session_state.theme == "dark" else "dark"
 
 def get_base64_image(image_path):
     if os.path.exists(image_path):
@@ -41,149 +41,120 @@ def get_base64_image(image_path):
             return base64.b64encode(img_file.read()).decode('utf-8')
     return ""
 
-# Determine current page
-page = get_param("page", "landing")
+# Pre-load assets
+logo_b64 = get_base64_image("landing/logo.png")
+if not logo_b64:
+    logo_b64 = get_base64_image("assets/logo.png")
 
-# Initialize session state early (Required for guest login persistence)
-if "user_email" not in st.session_state:
-    st.session_state.user_email = None
 
-# Force App page if any auth-related params are present or user is logged in
-auth_triggers = ["login_email", "code", "login", "plan", "state", "page"]
-if any(get_param(k) for k in auth_triggers) or st.session_state.user_email or st.session_state.get("pending_plan"):
-    # Special case: if page is specifically 'landing', don't force 'app'
-    if get_param("page") != "landing":
-        page = "app"
+# Routing
+page = params.get("page", "landing")
+if st.session_state.get("user_email") or params.get("login"):
+    page = "app"
 
 # ─────────────────────────────────────────────────────────
-# 2. LANDING PAGE
+# 1. GLOBAL PREMIUM CSS
 # ─────────────────────────────────────────────────────────
+
+DARK_CSS = """
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap');
+    .stApp { font-family: 'Plus Jakarta Sans', sans-serif; background: #06060f !important; }
+    header, footer, [data-testid="stHeader"], #MainMenu, .stDeployButton { visibility:hidden!important; height:0!important; }
+    
+    .hero-header {
+        background: linear-gradient(135deg, #0a0a1a 0%, #1a1040 40%, #0d0d2a 100%);
+        border-radius: 20px; padding: 2rem; margin-top: -3.5rem !important;
+        border: 1px solid rgba(123,47,247,0.15); box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+        text-align: center; margin-bottom: 2rem;
+    }
+    .hero-header h1 { font-size: 2.8rem; font-weight: 900; background: linear-gradient(135deg, #00d2ff, #7b2ff7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .hero-header p { color: rgba(240,240,245,0.5); }
+
+    .score-card { background: rgba(13,13,26,0.8); border: 1px solid rgba(255,255,255,0.06); border-radius: 18px; padding: 1.5rem; text-align: center; }
+    .score-card .label { color: rgba(255,255,255,0.4); font-size: 0.75rem; text-transform: uppercase; }
+    .score-card .value { font-size: 2.5rem; font-weight: 900; }
+    .score-green { color: #00e676; } .score-yellow { color: #ffab00; } .score-red { color: #ff1744; }
+
+    section[data-testid="stSidebar"] { background: #08081a !important; border-right: 1px solid rgba(255,255,255,0.05) !important; }
+    section[data-testid="stSidebar"] * { color: #c0c0d8 !important; }
+    .stButton>button { border-radius: 10px !important; transition: all 0.2s; }
+"""
+
+LIGHT_CSS = """
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap');
+    .stApp { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8f9fa !important; }
+    header, footer, [data-testid="stHeader"], #MainMenu, .stDeployButton { visibility:hidden!important; height:0!important; }
+    
+    .hero-header {
+        background: white; border-radius: 20px; padding: 2rem; margin-top: -3.5rem !important;
+        border: 1px solid rgba(0,0,0,0.05); box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        text-align: center; margin-bottom: 2rem;
+    }
+    .hero-header h1 { font-size: 2.8rem; font-weight: 900; color: #1a1a24; }
+    .hero-header p { color: #4a4a5a; }
+
+    .score-card { background: white; border: 1px solid rgba(0,0,0,0.06); border-radius: 18px; padding: 1.5rem; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
+    .score-card .label { color: #6b6b7b; font-size: 0.75rem; text-transform: uppercase; }
+    .score-card .value { font-size: 2.5rem; font-weight: 900; color: #1a1a24; }
+    .score-green { color: #00c853 !important; } .score-yellow { color: #ff8f00 !important; } .score-red { color: #d50000 !important; }
+
+    section[data-testid="stSidebar"] { background: #f0f2f5 !important; border-right: 1px solid rgba(0,0,0,0.05) !important; }
+    section[data-testid="stSidebar"] * { color: #4a4a5a !important; }
+    .stMetric { background: white !important; border: 1px solid rgba(0,0,0,0.06) !important; border-radius: 12px; }
+    .stMetricValue { color: #1a1a24 !important; }
+"""
+
+st.markdown(f"<style>{DARK_CSS if is_dark else LIGHT_CSS}</style>", unsafe_allow_html=True)
+
+# ─────────────────────────────────────────────────────────
+# 2. PAGE RENDERING
+# ─────────────────────────────────────────────────────────
+
 if page == "landing":
-    # Smart Redirect: Only send to port 8000 if running locally
-    st.markdown("""
-    <script>
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            if (window.location.port === '8501') {
-                window.top.location.href = 'http://localhost:8000/';
-            }
-        }
-    </script>
-    """, unsafe_allow_html=True)
-    
-    # Nuclear CSS for landing page
-    st.markdown("""
-<style>
-    /* Nuclear Layout Reset for Landing Page */
-    [data-testid="stAppViewContainer"], 
-    [data-testid="stAppViewContainer"] > section, 
-    .main, 
-    .stApp,
-    .block-container {
-        overflow: visible !important;
-        height: auto !important;
-        min-height: 100vh !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        max-width: 100% !important;
-    }
-
-    header, footer, [data-testid="stHeader"], [data-testid="stFooter"], #MainMenu, .stDeployButton, [data-testid="stToolbar"], [data-testid="stDecoration"] { 
-        visibility: hidden !important; height: 0 !important; display: none !important; 
-    }
-    [data-testid="stSidebar"], [data-testid="collapsedControl"] { display: none !important; }
-    .stApp { background-color: #06060f !important; }
-    
-    ::-webkit-scrollbar { width: 8px !important; }
-    ::-webkit-scrollbar-track { background: #06060f !important; }
-    ::-webkit-scrollbar-thumb { background: #7b2ff7 !important; border-radius: 10px !important; }
-</style>
-""", unsafe_allow_html=True)
+    st.markdown("""<style>
+        [data-testid="stAppViewContainer"], .main, .stApp, .block-container { padding: 0 !important; margin: 0 !important; max-width: 100% !important; }
+        [data-testid="stSidebar"] { display: none !important; }
+    </style>""", unsafe_allow_html=True)
 
     landing_dir = os.path.join(os.path.dirname(__file__), "landing")
     try:
         with open(os.path.join(landing_dir, "index.html"), "r", encoding="utf-8") as f:
             html = f.read()
-        
-        # Inject CSS
         if os.path.exists(os.path.join(landing_dir, "style.css")):
             with open(os.path.join(landing_dir, "style.css"), "r", encoding="utf-8") as f:
-                css = f.read()
-            html = html.replace('<link rel="stylesheet" href="style.css?v=2">', f'<style>{css}</style>')
+                html = html.replace('<link rel="stylesheet" href="style.css?v=2">', f'<style>{f.read()}</style>')
         
-        # Encode main logo
         logo_b64 = get_base64_image(os.path.join(landing_dir, "logo.png"))
-        if logo_b64:
-            html = html.replace('src="logo.png"', f'src="data:image/png;base64,{logo_b64}"')
+        if logo_b64: html = html.replace('src="logo.png"', f'src="data:image/png;base64,{logo_b64}"')
 
-        # Encode assets/ images
-        assets_dir = os.path.join(landing_dir, "assets")
-        if os.path.exists(assets_dir):
-            for img_name in os.listdir(assets_dir):
-                if img_name.endswith(('.png', '.jpg', '.jpeg', '.svg')):
-                    img_path = os.path.join(assets_dir, img_name)
-                    img_b64 = get_base64_image(img_path)
-                    if img_b64:
-                        html = html.replace(f'src="assets/{img_name}"', f'src="data:image/png;base64,{img_b64}"')
+        # ENHANCED THEME TOGGLE (VERY VISIBLE)
+        toggle_label = "🌞 Light Mode" if is_dark else "🌙 Dark Mode"
+        toggle_btn = f'<a href="?toggle_theme=1&page=landing" target="_top" class="nav-cta" style="background: rgba(255,255,255,0.15) !important; color: white !important; margin-right: 1rem; border: 1px solid rgba(255,255,255,0.3);">{toggle_label}</a>'
+        html = html.replace('<a href="?page=app" target="_top" class="nav-cta">', toggle_btn + '<a href="?page=app" target="_top" class="nav-cta">')
 
-        # Fix internal links - use direct URL with query params
-        # Build the app URL dynamically for both local and cloud
-        html = html.replace('href="/app"', 'href="?page=app"')
-        html = html.replace('href="/app?plan=', 'href="?page=app&plan=')
-        # Remove target attributes that interfere with navigation
-        html = re.sub(r'target="_blank"', '', html)
-        html = re.sub(r'target="_top"', '', html)
+        # Asset and link fixes
+        html = html.replace('href="/app"', 'href="?page=app"').replace('target="_blank"', '')
+        
+        if not is_dark:
+            html = html.replace("</head>", """<style>
+                :root { --bg-dark: #f8f9fa; --bg-card: white; --text-primary: #1a1a24; --text-secondary: #4a4a5a; --border: rgba(0,0,0,0.08); }
+                body { background: #f8f9fa !important; color: #1a1a24 !important; }
+                .navbar { background: rgba(255,255,255,0.98) !important; border-bottom: 1px solid rgba(0,0,0,0.05) !important; }
+                .nav-logo, .nav-links a { color: #1a1a24 !important; }
+                .hero h1 { background: none !important; -webkit-text-fill-color: #1a1a24 !important; color: #1a1a24 !important; }
+                .feature-card, .price-card, .step, .dashboard-card { background: white !important; box-shadow: 0 10px 30px rgba(0,0,0,0.05) !important; border-color: rgba(0,0,0,0.05) !important; }
+                .feature-card h3, .price-amount, .step h3, .dash-metric-value { color: #1a1a24 !important; }
+                .feature-card p, .price-tier, .step p, .dash-metric-label { color: #4a4a5a !important; }
+                .footer { background: #f0f2f5 !important; border-top: 1px solid rgba(0,0,0,0.05) !important; }
+            </style></head>""")
 
-        # Fix SVG icons for rendering (convert to base64 images)
-        import re as _re
-        import base64 as _base64
-
-        inline_grad = '<defs><linearGradient id="icon-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#ff6bcb"/><stop offset="100%" stop-color="#7b2ff7"/></linearGradient></defs>'
-
-        def _svg_to_img(match):
-            svg_content = match.group(0)
-            if 'xmlns=' not in svg_content:
-                svg_content = svg_content.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ')
-            svg_content = svg_content.replace('>', f'>{inline_grad}', 1)
-            b64_svg = _base64.b64encode(svg_content.encode('utf-8')).decode('utf-8')
-            return f'<img src="data:image/svg+xml;base64,{b64_svg}" style="width: 32px; height: 32px; filter: drop-shadow(0 0 8px rgba(123,47,247,0.6));">'
-
-        html = _re.sub(r'<svg\b[^>]*>.*?</svg>', _svg_to_img, html, flags=_re.DOTALL)
-
-        # Force all elements visible (bypass IntersectionObserver)
-        overrides = """
-        <style>
-            .feature-card, .step, .price-card { opacity: 1 !important; transform: none !important; }
-            .price-card.featured { transform: scale(1.03) !important; }
-            html, body { background: #06060f !important; overflow-x: hidden !important; margin: 0; padding: 0; }
-        </style>
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                // Force all animated elements visible
-                document.querySelectorAll('.feature-card, .step, .price-card').forEach(function(el) {
-                    el.classList.add('animate-in');
-                    el.style.opacity = '1';
-                    el.style.transform = 'none';
-                });
-                document.querySelectorAll('.price-card.featured').forEach(function(el) {
-                    el.style.transform = 'scale(1.03)';
-                });
-            });
-        </script>
-        """
-        html = html.replace("</head>", f"{overrides}</head>")
-
-        # Strip the full HTML document wrapper - st.html renders it directly
-        # Extract just the body content for st.html
         st.html(html)
         st.stop()
-
     except Exception as e:
         st.error(f"Landing Error: {e}")
 
+# Sign-in logic is handled in the main app section below
 
-# ─────────────────────────────────────────────────────────
-# 3. DASHBOARD LOGIC (Original app.py)
-# ─────────────────────────────────────────────────────────
 
 from utils.loader import load_file
 from utils.profiler import profile_data
@@ -204,38 +175,35 @@ from utils.auth import (
     verify_google_code, verify_microsoft_code, has_oauth_credentials,
 )
 
-logo_b64 = get_base64_image("assets/logo.png")
-
 # ═══════════════════════════════════════════════════════════════════════
-# PREMIUM CSS
+# PAGE CONFIG & PREMIUM CSS
 # ═══════════════════════════════════════════════════════════════════════
+st.set_page_config(
+    page_title="Data Lie Detector",
+    page_icon="assets/logo.png",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
     /* ══ GLOBAL ══ */
-    .stApp { font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; }
-    html, body, .stApp { background: #06060f !important; overflow-x: hidden !important; }
-    /* Hide ALL streamlit standard UI */
-    header, footer, [data-testid="stHeader"], [data-testid="stFooter"], #MainMenu, .stDeployButton, [data-testid="stToolbar"], [data-testid="stDecoration"] { 
-        visibility: hidden !important; 
-        height: 0 !important; 
-        display: none !important;
-    }
-    [data-testid="stAppViewContainer"] { padding: 0 !important; }
-    [data-testid="stAppViewContainer"] > section:nth-child(2) { padding: 0 !important; }
+    .stApp { font-family: 'Inter', -apple-system, sans-serif; }
+    html, body, .stApp { background: #06060f !important; }
+    #MainMenu, footer, header, [data-testid="stToolbar"] { visibility:hidden!important; height:0!important; }
+    .stDeployButton { display:none!important; }
+    [data-testid="stHeader"] { background:transparent!important; }
     ::-webkit-scrollbar { width:5px; }
     ::-webkit-scrollbar-track { background:transparent; }
     ::-webkit-scrollbar-thumb { background:rgba(123,47,247,0.3); border-radius:10px; }
-    .main .block-container { padding-top: 1rem !important; padding-bottom: 2rem !important; max-width: 100% !important; }
-    [data-testid="stVerticalBlock"] { gap: 0.5rem !important; }
 
     /* ══ HERO HEADER ══ */
     .hero-header {
         background: linear-gradient(135deg, #0a0a1a 0%, #1a1040 40%, #0d0d2a 100%);
-        border-radius: 20px; padding: 0.4rem 1.5rem; margin-bottom: 0.5rem; text-align: center;
-        border: 1px solid rgba(123,47,247,0.15); margin-top: -4rem !important;
+        border-radius: 20px; padding: 3rem 2.5rem; margin-bottom: 2rem; text-align: center;
+        border: 1px solid rgba(123,47,247,0.15);
         box-shadow: 0 8px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04);
         position: relative; overflow: hidden;
     }
@@ -246,11 +214,12 @@ st.markdown("""
         pointer-events:none;
     }
     .hero-header h1 {
-        font-size: 2.5rem; font-weight: 900; position:relative;
-        color: white;
-        margin-bottom: 0.2rem; letter-spacing:-0.02em;
+        font-size: 2.6rem; font-weight: 900; position:relative;
+        background: linear-gradient(135deg, #00d2ff, #7b2ff7 50%, #ff6bcb);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        margin-bottom: 0.4rem; letter-spacing:-0.02em;
     }
-    .hero-header p { color: rgba(240,240,245,0.5); font-size: 0.85rem; font-weight: 400; position:relative; }
+    .hero-header p { color: rgba(240,240,245,0.5); font-size: 0.95rem; font-weight: 400; position:relative; }
 
     /* ══ SCORE CARDS ══ */
     .score-card {
@@ -359,28 +328,16 @@ st.markdown("""
     }
     section[data-testid="stSidebar"] * { color: #c0c0d8 !important; }
     section[data-testid="stSidebar"] h1, section[data-testid="stSidebar"] h2,
-    section[data-testid="stSidebar"] h3 { color: #e8e8f0 !important; margin-bottom: 0.5rem !important; }
-    
-    /* Ensure long email addresses don't overflow or overlap */
-    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p,
-    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] span {
-        overflow-wrap: break-word !important;
-        word-break: break-all !important;
-        line-height: 1.4 !important;
-    }
-
+    section[data-testid="stSidebar"] h3 { color: #e8e8f0 !important; }
     section[data-testid="stSidebar"] .stButton>button {
         background: rgba(123,47,247,0.1)!important; border:1px solid rgba(123,47,247,0.25)!important;
         border-radius:10px!important; color:#c0b0f0!important; font-weight:600!important;
-        transition:all .2s!important; margin-top: 0.5rem !important;
+        transition:all .2s!important;
     }
     section[data-testid="stSidebar"] .stButton>button:hover {
         background:rgba(123,47,247,0.2)!important; border-color:rgba(123,47,247,0.4)!important;
         transform:translateY(-1px)!important;
     }
-    /* ══ SIDEBAR SPACING ══ */
-    [data-testid="stSidebar"] [data-testid="stVerticalBlock"] { gap: 1rem !important; }
-    [data-testid="stSidebar"] hr { margin: 1rem 0 !important; opacity: 0.1; }
 
     /* ══ TABS ══ */
     .stTabs [data-baseweb="tab-list"] {
@@ -509,47 +466,85 @@ def render_section(icon, title):
     st.markdown(f'<div class="section-header">{icon} {title}</div>', unsafe_allow_html=True)
 
 
+if "user_email" not in st.session_state:
+    st.session_state.user_email = None
 
 if "counted_files" not in st.session_state:
     st.session_state.counted_files = set()
+
+# ═══════════════════════════════════════════════════════════════════════
+# SIDEBAR
+# ═══════════════════════════════════════════════════════════════════════
+with st.sidebar:
+    st.markdown("### 👤 Account")
+    st.markdown(f"**{st.session_state.user_email or 'Guest User'}**")
+    if st.button("Logout"):
+        st.session_state.user_email = None
+        st.rerun()
+    st.divider()
+
+    st.markdown("### ⚙️ Settings")
+    if st.button("🌞 Light Mode" if is_dark else "🌙 Dark Mode", use_container_width=True):
+        toggle_theme()
+        st.rerun()
+    st.divider()
+
+    st.markdown("### ⚙️ Settings")
+    st.divider()
+
+    # OpenAI API Key (optional)
+    api_key = st.text_input("OpenAI API Key (optional)", type="password",
+                            help="Enter your OpenAI API key for AI-powered insights")
+
+    st.divider()
+    st.markdown("### 📖 About")
+    st.markdown("""
+    **Data Lie Detector** analyzes your datasets
+    for quality issues, suspicious patterns, and
+    decision risks.
+
+    *Upload → Detect → Trust → Decide*
+    """)
+    st.divider()
+    st.caption("v2.0 — Decision Safety AI")
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# HERO HEADER
+# ═══════════════════════════════════════════════════════════════════════
+logo_html = f'<img src="data:image/png;base64,{logo_b64}" style="height: 1.2em; vertical-align: middle; margin-right: 12px;">' if logo_b64 else '🕵️'
+st.markdown(f"""
+<div class="hero-header">
+    <h1>{logo_html} Data Lie Detector</h1>
+    <p>Upload data → Detect issues → Score trust → Make safe decisions</p>
+</div>
+""", unsafe_allow_html=True)
 
 
 # ═══════════════════════════════════════════════════════════════════════
 # CAPTURE PLAN PARAMETER (from landing page "Buy Now" links)
 # ═══════════════════════════════════════════════════════════════════════
-params = get_all_params()
-if "plan" in params:
-    st.session_state.pending_plan = get_param("plan")
-    # Do not clear_params or rerun here, let it fall through to login logic
-
+if "plan" in st.query_params:
+    st.session_state.pending_plan = st.query_params["plan"]
+    st.query_params.clear()
+    st.rerun()
 
 # ═══════════════════════════════════════════════════════════════════════
 # MAIN APP / PAYWALL
 # ═══════════════════════════════════════════════════════════════════════
 if not st.session_state.user_email:
     # ── 1. Handle OAuth Callback (user is returning from Google/Microsoft) ──
-    params = get_all_params()
-    if "code" in params and "state" in params:
-        code = get_param("code")
-        state_full = get_param("state")
-        
-        # Extract provider and optional plan from state (e.g. "google|monthly")
-        state_parts = state_full.split("|")
-        provider_state = state_parts[0]
-        if len(state_parts) > 1:
-            st.session_state.pending_plan = state_parts[1]
-            
+    if "code" in st.query_params and "state" in st.query_params:
+        code = st.query_params["code"]
+        state = st.query_params["state"]
         email = None
-        if provider_state == "google":
+        if state == "google":
             email = verify_google_code(code)
-        elif provider_state == "microsoft":
+        elif state == "microsoft":
             email = verify_microsoft_code(code)
 
-        clear_params()
+        st.query_params.clear()
         if email:
-            if st.session_state.get("user_email"):
-                st.session_state.user_email = None
-                st.rerun()
             user = login_user(email)
             st.session_state.user_email = user["email"]
             st.rerun()
@@ -557,17 +552,13 @@ if not st.session_state.user_email:
             st.error("Authentication failed. Please try again.")
 
     # ── 2. Build OAuth URLs ──
-    current_plan = st.session_state.get("pending_plan")
-    google_url = get_google_login_url(current_plan)
-    microsoft_url = get_microsoft_login_url(current_plan)
+    google_url = get_google_login_url()
+    microsoft_url = get_microsoft_login_url()
 
     # If credentials are missing, fall back to a simulated form
-    if "login" in params and not has_oauth_credentials():
-        provider = get_param("login").capitalize()
-        clear_params()
-        if st.session_state.get("user_email"):
-            st.session_state.user_email = None
-            st.rerun()
+    if "login" in st.query_params and not has_oauth_credentials():
+        provider = st.query_params["login"].capitalize()
+        st.query_params.clear()
         st.session_state.oauth_provider = provider
         st.rerun()
 
@@ -612,330 +603,121 @@ border: 1px solid rgba(123,47,247,0.3); border-radius: 16px; padding: 2.5rem; te
         st.stop()
 
     # ── 3. Determine button hrefs ──
-    plan_q = f"&plan={st.session_state.pending_plan}" if st.session_state.get("pending_plan") else ""
-    google_href = google_url if google_url else f"?page=app&login=google{plan_q}"
-    microsoft_href = microsoft_url if microsoft_url else f"?page=app&login=microsoft{plan_q}"
-
-    # ── 3. Handle Email/Guest Login via URL ──
-    if "login_email" in params:
-        email = get_param("login_email")
-        clear_params()
-        if st.session_state.get("user_email"):
-            st.session_state.user_email = None
-            st.rerun()
-        user = login_user(email)
-        st.session_state.user_email = user["email"]
-        st.rerun()
+    google_href = google_url if google_url else "?login=google"
+    microsoft_href = microsoft_url if microsoft_url else "?login=microsoft"
 
     # ── 4. Full-Page Login UI ──
-    home_url = "?page=landing"  # Works on both local (JS redirects to 8000) and Cloud
-    
-    css_code = """
+    st.markdown(f"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-[data-testid="stSidebar"] { display: none; }
-[data-testid="collapsedControl"] { display: none; }
-[data-testid="stHeader"] { display: none; }
-html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stVerticalBlock"], .login-wrapper {
-    background: #06060f !important;
-    overflow: hidden !important;
-    height: 100vh !important;
-    padding-top: 0 !important;
-}
-::-webkit-scrollbar { display: none !important; }
-* { scrollbar-width: none !important; -ms-overflow-style: none !important; }
-.main .block-container { padding: 0 !important; margin-top: -2rem !important; }
-
-.login-wrapper {
-    display: flex; justify-content: center; align-items: flex-start;
-    font-family: 'Plus Jakarta Sans', sans-serif; padding-top: 0;
-}
-.login-container {
-    background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 20px;
-    padding: 1rem 1.5rem; width: 100%; max-width: 380px; text-align: center;
-    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
-}
-.login-title {
-    color: white; font-size: 1.1rem; font-weight: 800; margin-bottom: 0.3rem;
-    letter-spacing: -0.03em;
-}
-.oauth-btn {
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-    width: 100%; padding: 0.6rem; border-radius: 10px; font-weight: 600;
-    transition: all 0.2s; text-decoration: none !important; margin-bottom: 0.5rem;
-    font-size: 0.9rem;
-}
-.oauth-google { background: white; color: #1f2937; }
-.oauth-microsoft { background: rgba(255,255,255,0.05); color: #00a4ef; border: 1px solid rgba(255,255,255,0.1); }
-.login-divider {
-    display: flex; align-items: center; gap: 1rem; margin: 0.8rem 0;
-    color: rgba(255,255,255,0.2); font-size: 0.7rem; font-weight: 600; letter-spacing: 1px;
-}
-.login-divider::before, .login-divider::after { content:''; flex:1; height:1px; background: rgba(255,255,255,0.1); }
+[data-testid="stSidebar"] {{ display: none; }}
+[data-testid="collapsedControl"] {{ display: none; }}
+[data-testid="stHeader"] {{ display: none; }}
+.login-wrapper {{
+    min-height: 80vh; display: flex; align-items: center; justify-content: center;
+    position: relative;
+}}
+.login-wrapper::before {{
+    content:''; position:absolute; width:500px; height:500px;
+    background: radial-gradient(circle, rgba(123,47,247,0.12), transparent 70%);
+    top: -10%; left: 30%; pointer-events:none; animation: loginGlow 6s ease-in-out infinite;
+}}
+.login-wrapper::after {{
+    content:''; position:absolute; width:350px; height:350px;
+    background: radial-gradient(circle, rgba(0,210,255,0.06), transparent 70%);
+    bottom: 5%; right: 25%; pointer-events:none; animation: loginGlow 8s ease-in-out infinite reverse;
+}}
+@keyframes loginGlow {{
+    0%,100% {{ opacity:0.5; transform:scale(1); }}
+    50% {{ opacity:1; transform:scale(1.15); }}
+}}
+.login-container {{
+    max-width: 440px; width: 100%; position: relative; z-index: 2;
+    background: rgba(10,10,26,0.85); backdrop-filter: blur(24px);
+    border: 1px solid rgba(123,47,247,0.18);
+    border-radius: 24px; padding: 3rem 2.5rem; text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 100px rgba(123,47,247,0.06);
+}}
+.login-title {{ font-size: 2rem; font-weight: 900; margin-bottom: 0.5rem; color: #f0f0f5; letter-spacing:-0.02em; }}
+.login-sub {{ font-size: 0.88rem; color: rgba(240,240,245,0.45); margin-bottom: 2rem; line-height:1.5; }}
+.oauth-btn {{
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    padding: 13px 20px; border-radius: 12px; text-decoration: none;
+    font-weight: 600; font-size: 0.9rem; font-family: 'Inter', sans-serif;
+    transition: all 0.25s cubic-bezier(0.4,0,0.2,1); cursor: pointer;
+}}
+.oauth-google {{
+    background: #ffffff; color: #3c4043; border: 1px solid #e0e0e0; margin-bottom: 12px;
+}}
+.oauth-google:hover {{ transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.15); }}
+.oauth-microsoft {{
+    background: #1a1a2e; color: #e0e0e8; border: 1px solid rgba(255,255,255,0.12); margin-bottom: 8px;
+}}
+.oauth-microsoft:hover {{ transform: translateY(-2px); background: #222240; box-shadow: 0 8px 25px rgba(0,0,0,0.3); }}
+.login-divider {{
+    display: flex; align-items: center; gap: 1rem; margin: 1.5rem 0;
+    color: rgba(255,255,255,0.2); font-size: 0.75rem; font-weight: 600; letter-spacing: 1px;
+}}
+.login-divider::before, .login-divider::after {{
+    content:''; flex:1; height:1px; background: rgba(255,255,255,0.08);
+}}
 </style>
-"""
-    
-    login_html = f"""
 <div class="login-wrapper">
 <div class="login-container">
-<a href="{home_url}" target="_self" style="position:absolute; top:20px; left:20px; color:rgba(255,255,255,0.6); text-decoration:none !important; border-bottom:none !important; box-shadow:none !important; font-size:0.85rem; font-weight:600; display:flex; align-items:center; gap:6px;">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-    Home
-</a>
-<img src="data:image/png;base64,{logo_b64}" style="height: 3.2rem; margin-bottom: 0.8rem; border-radius: 8px;">
+<a href="http://localhost:8000" style="position:absolute; top:20px; left:20px; color:rgba(255,255,255,0.4); text-decoration:none; font-size:0.85rem; font-weight:600; transition:color 0.2s;">← Back to Home</a>
+<img src="data:image/png;base64,{logo_b64}" style="height: 4.5rem; margin-bottom: 1rem; filter: drop-shadow(0 4px 12px rgba(123,47,247,0.3)); border-radius: 12px;">
 <div class="login-title">Welcome Back</div>
+<div class="login-sub">Sign in or create an account to start your free trial.<br>No credit card required.</div>
+
 <a href="{google_href}" target="_self" class="oauth-btn oauth-google">
 <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
 Continue with Google
 </a>
+
 <a href="{microsoft_href}" target="_self" class="oauth-btn oauth-microsoft">
 <svg width="18" height="18" viewBox="0 0 21 21"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
 Continue with Microsoft
 </a>
-<div class="login-divider">OR</div>
-<form action="" method="get">
-<input type="hidden" name="page" value="app">
-{f'<input type="hidden" name="plan" value="{st.session_state.pending_plan}">' if st.session_state.get("pending_plan") else ""}
-<input type="email" name="login_email" placeholder="name@company.com" style="background: rgba(13,13,26,0.8); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 0.6rem; width: 100%; color: white; font-size: 0.9rem; margin-bottom: 0.8rem; outline: none; box-sizing: border-box;" required>
-<button type="submit" style="background: #7b2ff7; color: white; border: none; border-radius: 10px; padding: 0.7rem; width: 100%; font-weight: 700; cursor: pointer; font-size: 0.9rem;">Continue with Email →</button>
-</form>
-<div style="margin-top:0.8rem;">
-<a href="?page=app&login_email=guest_{int(time.time())}@dataliedetector.com{plan_q}" target="_self" style="color:rgba(255,255,255,0.4); text-decoration:none; font-size:0.8rem; font-weight: 600;">Continue as Guest</a>
 </div>
-</div>
-</div>
-"""
-    
-    st.markdown(css_code + login_html, unsafe_allow_html=True)
-    st.stop()
-
-# ═══════════════════════════════════════════════════════════════════════
-# PAYMENT PAGE (if user clicked "Buy Now" from landing page)
-# ═══════════════════════════════════════════════════════════════════════
-if st.session_state.get("pending_plan"):
-    plan = st.session_state.pending_plan
-    plan_names = {"monthly": "1 Month Pro", "semi_annual": "6 Months Pro", "yearly": "1 Year Pro"}
-    plan_prices = {"monthly": "$5", "semi_annual": "$29", "yearly": "$49"}
-    plan_label = plan_names.get(plan, plan.capitalize())
-    plan_price = plan_prices.get(plan, "$0")
-
-    st.markdown(f"""
-<div style="max-width: 500px; margin: 2rem auto; background: linear-gradient(145deg, #1a1a2e, #0f0c29); border: 1px solid rgba(123,47,247,0.3); border-radius: 16px; padding: 2.5rem; text-align: center;">
-<h2 style="color: white; margin-bottom: 0.5rem;">Complete Your Purchase</h2>
-<p style="color: rgba(255,255,255,0.5); margin-bottom: 1.5rem;">You are upgrading to <strong style="color:#7b2ff7;">{plan_label}</strong></p>
-<div style="font-size: 3rem; font-weight: 900; color: #00e676; margin-bottom: 0.5rem;">{plan_price}</div>
-<p style="color: rgba(255,255,255,0.4); font-size: 0.85rem; margin-bottom: 2rem;">Logged in as: {st.session_state.user_email}</p>
 </div>
 """, unsafe_allow_html=True)
 
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        if not st.session_state.get("checkout_method_pending"):
-            st.markdown("**Select Payment Method:**")
-            p1, p2, p3 = st.columns(3)
-            with p1:
-                if st.button("💳 Card", type="primary", use_container_width=True):
-                    st.session_state.checkout_method_pending = "card"
+        st.markdown('<div class="login-divider">OR</div>', unsafe_allow_html=True)
+
+        email_input = st.text_input("Email Address", placeholder="name@company.com", label_visibility="collapsed")
+        
+        col_btn1, col_btn2 = st.columns(2)
+        with col_btn1:
+            if st.button("Continue with Email →", type="primary", use_container_width=True):
+                if "@" in email_input:
+                    user = login_user(email_input)
+                    st.session_state.user_email = user["email"]
                     st.rerun()
-            with p2:
-                if st.button("📱 UPI", use_container_width=True):
-                    st.session_state.checkout_method_pending = "upi"
-                    st.rerun()
-            with p3:
-                if st.button("🅿️ PayPal", use_container_width=True):
-                    st.session_state.checkout_method_pending = "paypal"
-                    st.rerun()
-            if st.button("Cancel", use_container_width=True):
-                del st.session_state["pending_plan"]
-                st.rerun()
-        else:
-            method = st.session_state.checkout_method_pending
-            st.markdown(f"### {'💳 Card Details' if method == 'card' else '📱 UPI Details' if method == 'upi' else '🅿️ PayPal Checkout'}")
-            
-            with st.form("checkout_form"):
-                if method == "card":
-                    st.text_input("Card Number", placeholder="0000 0000 0000 0000", max_chars=19)
-                    c1, c2 = st.columns(2)
-                    c1.text_input("Expiry Date", placeholder="MM/YY", max_chars=5)
-                    c2.text_input("CVC", placeholder="123", max_chars=3, type="password")
-                    st.text_input("Cardholder Name", placeholder="John Doe")
-                elif method == "upi":
-                    st.text_input("Enter your UPI ID", placeholder="username@upi")
                 else:
-                    st.text_input("PayPal Email Address", placeholder="name@example.com")
-                
-                st.markdown("<br>", unsafe_allow_html=True)
-                submit_col, cancel_col = st.columns(2)
-                with submit_col:
-                    submitted = st.form_submit_button("Confirm Payment", type="primary", use_container_width=True)
-                with cancel_col:
-                    cancelled = st.form_submit_button("Back", use_container_width=True)
-                    
-                if submitted:
-                    upgrade_subscription(st.session_state.user_email, plan)
-                    del st.session_state["pending_plan"]
-                    del st.session_state["checkout_method_pending"]
-                    st.success(f"Payment successful! You are now on the **{plan_label}** plan.")
-                    st.balloons()
-                    import time; time.sleep(2)
-                    st.rerun()
-                elif cancelled:
-                    del st.session_state["checkout_method_pending"]
-                    st.rerun()
+                    st.error("Please enter a valid email address.")
+        with col_btn2:
+            if st.button("Try as Guest 🕵️", use_container_width=True):
+                import time
+                guest_email = f"guest_{int(time.time())}@dataliedetector.com"
+                user = login_user(guest_email)
+                st.session_state.user_email = user["email"]
+                st.rerun()
 
     st.stop()
 
 # ═══════════════════════════════════════════════════════════════════════
-# SIDEBAR
 # ═══════════════════════════════════════════════════════════════════════
-with st.sidebar:
-    if st.session_state.user_email:
-        st.markdown("### 👤 Account")
-        user = get_user(st.session_state.user_email)
-        st.markdown(f"**{user['email']}**")
-        st.caption(f"Plan: {user['subscription'].upper()}")
-        if st.button("Logout"):
-            st.session_state.user_email = None
-            clear_params()
-            st.rerun()
-        st.divider()
-
-    st.markdown("### ⚙️ Settings")
-    st.divider()
-
-    # OpenAI API Key (optional)
-    api_key = st.text_input("OpenAI API Key (optional)", type="password",
-                            help="Enter your OpenAI API key for AI-powered insights")
-
-    st.divider()
-    st.markdown("### 📖 About")
-    st.markdown("""
-    **Data Lie Detector** analyzes your datasets
-    for quality issues, suspicious patterns, and
-    decision risks.
-
-    *Upload → Detect → Trust → Decide*
-    """)
-    st.divider()
-    st.caption("v2.0 — Decision Safety AI")
-
-
+# 100% FREE & UNLIMITED ACCESS
 # ═══════════════════════════════════════════════════════════════════════
-# HERO HEADER
-# ═══════════════════════════════════════════════════════════════════════
-logo_html = f'<img src="data:image/png;base64,{logo_b64}" style="height: 4.5rem; vertical-align: middle; margin-right: 18px; filter: drop-shadow(0 4px 15px rgba(123,47,247,0.4));">' if logo_b64 else '🕵️'
-st.markdown(f"""
-<div class="hero-header">
-    <h1>{logo_html} Data Lie Detector</h1>
-    <p>Upload data → Detect issues → Score trust → Make safe decisions</p>
-</div>
-""", unsafe_allow_html=True)
+if st.session_state.get("pending_plan"):
+    del st.session_state["pending_plan"]
 
-has_access, reason, trial_status = check_access(st.session_state.user_email)
-
-st.markdown(f"""
-<div style="text-align:center; margin-bottom:0.8rem; margin-top:0.5rem;">
-    <span style="background:rgba(123,47,247,0.1); border:1px solid rgba(123,47,247,0.2); color:#ffffff; padding:0.3rem 1.2rem; border-radius:50px; font-size:0.8rem; font-weight:600; letter-spacing:0.5px;">{trial_status}</span>
+st.markdown("""
+<div style="text-align:center; margin-bottom:1.5rem;">
+    <span style="background:rgba(0,230,118,0.1); border:1px solid rgba(0,230,118,0.25); color:#69f0ae; padding:0.35rem 1.2rem; border-radius:50px; font-size:0.8rem; font-weight:700; letter-spacing:0.5px;">✓ Free Forever — Unlimited Datasets & AI Diagnostics</span>
 </div>""", unsafe_allow_html=True)
 
-if not has_access:
-    # ── PAYWALL UI ──
-    st.markdown(f'<div class="alert-critical" style="text-align:center; font-size:1.05rem; padding: 1.2rem; border-radius:14px;">🚨 {reason}</div>', unsafe_allow_html=True)
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("""
-    <div style="text-align:center; margin-bottom: 2rem;">
-        <div style="font-size:2rem; font-weight:900; color:#f0f0f5; letter-spacing:-0.02em;">Upgrade Your Plan</div>
-        <div style="font-size:0.9rem; color:rgba(240,240,245,0.4); margin-top:0.4rem;">Unlock unlimited datasets, AI insights, and PDF reports</div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.markdown("""
-        <div style="background:rgba(13,13,26,0.8); border:1px solid rgba(255,255,255,0.06); border-radius:20px; padding:2rem 1.5rem; text-align:center; backdrop-filter:blur(12px);">
-            <div style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; color:rgba(255,255,255,0.35); margin-bottom:0.8rem;">1 Month</div>
-            <div style="font-size:3rem; font-weight:900; color:#f0f0f5; letter-spacing:-0.03em;">$5<span style="font-size:1rem; font-weight:400; color:rgba(255,255,255,0.3);">/mo</span></div>
-            <div style="font-size:0.8rem; color:rgba(255,255,255,0.3); margin-top:0.5rem;">Perfect for trying out</div>
-        </div>""", unsafe_allow_html=True)
-        if st.button("Buy Monthly", use_container_width=True):
-            st.session_state.selected_plan = "monthly"
-    with col2:
-        st.markdown("""
-        <div style="background:linear-gradient(145deg, rgba(123,47,247,0.12), rgba(13,13,26,0.9)); border:1px solid rgba(123,47,247,0.3); border-radius:20px; padding:2rem 1.5rem; text-align:center; backdrop-filter:blur(12px); position:relative; box-shadow:0 8px 40px rgba(123,47,247,0.1);">
-            <div style="position:absolute; top:-12px; left:50%; transform:translateX(-50%); background:linear-gradient(135deg,#7b2ff7,#ff6bcb); color:white; padding:3px 16px; border-radius:50px; font-size:0.65rem; font-weight:800; text-transform:uppercase; letter-spacing:1px;">Most Popular</div>
-            <div style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; color:rgba(123,47,247,0.7); margin-bottom:0.8rem;">6 Months</div>
-            <div style="font-size:3rem; font-weight:900; color:#f0f0f5; letter-spacing:-0.03em;">$29<span style="font-size:1rem; font-weight:400; color:rgba(255,255,255,0.3);">/6mo</span></div>
-            <div style="font-size:0.8rem; color:rgba(255,255,255,0.4); margin-top:0.5rem;">Save 52% vs monthly</div>
-        </div>""", unsafe_allow_html=True)
-        if st.button("Buy 6-Months", type="primary", use_container_width=True):
-            st.session_state.selected_plan = "semi_annual"
-    with col3:
-        st.markdown("""
-        <div style="background:rgba(13,13,26,0.8); border:1px solid rgba(255,255,255,0.06); border-radius:20px; padding:2rem 1.5rem; text-align:center; backdrop-filter:blur(12px);">
-            <div style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; color:rgba(255,255,255,0.35); margin-bottom:0.8rem;">1 Year</div>
-            <div style="font-size:3rem; font-weight:900; color:#f0f0f5; letter-spacing:-0.03em;">$49<span style="font-size:1rem; font-weight:400; color:rgba(255,255,255,0.3);">/yr</span></div>
-            <div style="font-size:0.8rem; color:rgba(255,255,255,0.3); margin-top:0.5rem;">Best value — $4.08/mo</div>
-        </div>""", unsafe_allow_html=True)
-        if st.button("Buy Yearly", use_container_width=True):
-            st.session_state.selected_plan = "yearly"
-            
-    if "selected_plan" in st.session_state:
-        st.divider()
-        st.markdown(f"**Selected Plan:** {st.session_state.selected_plan.upper()}")
-        
-        if not st.session_state.get("checkout_method_selected"):
-            st.markdown("Select Payment Method:")
-            p1, p2, p3 = st.columns(3)
-            with p1:
-                if st.button("💳 Pay with Card", use_container_width=True):
-                    st.session_state.checkout_method_selected = "card"
-                    st.rerun()
-            with p2:
-                if st.button("📱 Pay with UPI", use_container_width=True):
-                    st.session_state.checkout_method_selected = "upi"
-                    st.rerun()
-            with p3:
-                if st.button("🅿️ Pay with PayPal", use_container_width=True):
-                    st.session_state.checkout_method_selected = "paypal"
-                    st.rerun()
-            if st.button("Cancel", use_container_width=True):
-                del st.session_state.selected_plan
-                st.rerun()
-        else:
-            method = st.session_state.checkout_method_selected
-            st.markdown(f"### {'💳 Card Details' if method == 'card' else '📱 UPI Details' if method == 'upi' else '🅿️ PayPal Checkout'}")
-            
-            with st.form("checkout_form_selected"):
-                if method == "card":
-                    st.text_input("Card Number", placeholder="0000 0000 0000 0000", max_chars=19)
-                    c1, c2 = st.columns(2)
-                    c1.text_input("Expiry Date", placeholder="MM/YY", max_chars=5)
-                    c2.text_input("CVC", placeholder="123", max_chars=3, type="password")
-                    st.text_input("Cardholder Name", placeholder="John Doe")
-                elif method == "upi":
-                    st.text_input("Enter your UPI ID", placeholder="username@upi")
-                else:
-                    st.text_input("PayPal Email Address", placeholder="name@example.com")
-                
-                st.markdown("<br>", unsafe_allow_html=True)
-                submit_col, cancel_col = st.columns(2)
-                with submit_col:
-                    submitted = st.form_submit_button("Confirm Payment", type="primary", use_container_width=True)
-                with cancel_col:
-                    cancelled = st.form_submit_button("Back", use_container_width=True)
-                    
-                if submitted:
-                    upgrade_subscription(st.session_state.user_email, st.session_state.selected_plan)
-                    del st.session_state.selected_plan
-                    del st.session_state.checkout_method_selected
-                    st.success("Payment Successful! Upgrading account...")
-                    import time; time.sleep(1)
-                    st.rerun()
-                elif cancelled:
-                    del st.session_state.checkout_method_selected
-                    st.rerun()
-    st.stop()
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -1309,10 +1091,10 @@ if files:
 else:
     # ── EMPTY STATE ──
     st.markdown("""
-    <div style="text-align:center; padding:1rem 2rem; position:relative;">
+    <div style="text-align:center; padding:5rem 2rem; position:relative;">
         <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:300px; height:300px; background:radial-gradient(circle, rgba(123,47,247,0.06), transparent 70%); pointer-events:none;"></div>
-        <div style="font-size:3rem; margin-bottom:0.4rem; filter:drop-shadow(0 4px 12px rgba(123,47,247,0.2)); position:relative;">📁</div>
-        <div style="font-size:1.2rem; font-weight:800; color:#e0e0f0; margin-bottom:0.3rem; position:relative;">Drop your CSV file above</div>
-        <div style="font-size:0.85rem; color:rgba(240,240,245,0.3); max-width:400px; margin:0 auto; line-height:1.4; position:relative;">Your data stays 100% local — nothing is sent to any server unless you explicitly use AI Insight.</div>
+        <div style="font-size:4rem; margin-bottom:1rem; filter:drop-shadow(0 4px 12px rgba(123,47,247,0.2)); position:relative;">📁</div>
+        <div style="font-size:1.3rem; font-weight:800; color:#e0e0f0; margin-bottom:0.6rem; position:relative;">Drop your CSV file above</div>
+        <div style="font-size:0.88rem; color:rgba(240,240,245,0.35); max-width:400px; margin:0 auto; line-height:1.6; position:relative;">Your data stays 100% local — nothing is sent to any server unless you explicitly use AI Insight.</div>
     </div>
     """, unsafe_allow_html=True)

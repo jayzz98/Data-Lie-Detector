@@ -12,10 +12,7 @@ DB_FILE = "users.json"
 # ═══════════════════════════════════════════════════════════════════════
 # OAUTH CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════
-# Default to localhost for development, but in production this MUST be set to your public Streamlit URL
-# (e.g. https://8502.my-repl.user.replit.dev or https://myapp.streamlit.app)
 REDIRECT_URI = os.getenv("REDIRECT_URI", "http://localhost:8502")
-
 
 # Google
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
@@ -30,7 +27,7 @@ MICROSOFT_TENANT_ID = os.getenv("MICROSOFT_TENANT_ID", "common")
 # ═══════════════════════════════════════════════════════════════════════
 # GOOGLE OAUTH FLOW
 # ═══════════════════════════════════════════════════════════════════════
-def get_google_login_url(plan=None):
+def get_google_login_url():
     """Build the real Google OAuth2 authorization URL."""
     if not GOOGLE_CLIENT_ID:
         return None
@@ -41,7 +38,7 @@ def get_google_login_url(plan=None):
         "scope": "openid email profile",
         "access_type": "offline",
         "prompt": "select_account",
-        "state": f"google|{plan}" if plan else "google",
+        "state": "google",
     })
     return f"https://accounts.google.com/o/oauth2/v2/auth?{params}"
 
@@ -71,7 +68,7 @@ def verify_google_code(code: str):
 # ═══════════════════════════════════════════════════════════════════════
 # MICROSOFT OAUTH FLOW
 # ═══════════════════════════════════════════════════════════════════════
-def get_microsoft_login_url(plan=None):
+def get_microsoft_login_url():
     """Build the real Microsoft OAuth2 authorization URL."""
     if not MICROSOFT_CLIENT_ID:
         return None
@@ -82,7 +79,7 @@ def get_microsoft_login_url(plan=None):
         "response_type": "code",
         "scope": "openid email profile User.Read",
         "response_mode": "query",
-        "state": f"microsoft|{plan}" if plan else "microsoft",
+        "state": "microsoft",
     })
     return f"{base}?{params}"
 
@@ -178,21 +175,7 @@ def check_access(email):
     """
     Check if a user has access to analyze a dataset.
     Returns (has_access, reason, trial_status)
+    100% Free - No Paywalls or Limits.
     """
-    user = get_user(email)
-    if not user:
-        return False, "User not found", "None"
+    return True, "", "Free & Unlimited Access"
 
-    if user["subscription"] != "free":
-        # Check if subscription expired
-        if user["subscription_expiry"]:
-            expiry = datetime.fromisoformat(user["subscription_expiry"])
-            if datetime.now() > expiry:
-                return False, "Subscription expired. Please renew.", "Expired"
-        return True, "", "Subscribed"
-
-    # Free user limits: max 2 datasets
-    if user["datasets_analyzed"] >= 2:
-        return False, "You have reached the 2 dataset free limit. Please upgrade.", "Limit Reached"
-        
-    return True, "", f"Free Tier Active ({2 - user['datasets_analyzed']} datasets left)"

@@ -1,0 +1,15 @@
+*.zip
+temp_prod
+temp_final
+temp_cloud
+unzipped_test
+__pycache__
+utils/__pycache__
+app_backup.py
+*.py
+*.pyc
+requirements.txt
+Procfile
+DEPLOYMENT.md
+users.json
+*.db

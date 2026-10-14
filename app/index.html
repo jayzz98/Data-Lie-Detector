@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analyze Data — Data Lie Detector | Decision Safety AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #06060f;
+      color: #e8e8f0;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       AUTH MODAL / LOGIN OVERLAY
+       ═══════════════════════════════════════════════════════ */
+    #auth-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(6, 6, 15, 0.92);
+      backdrop-filter: blur(20px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+    .auth-card {
+      width: 100%;
+      max-width: 440px;
+      background: rgba(13, 13, 26, 0.95);
+      border: 1px solid rgba(123, 47, 247, 0.25);
+      border-radius: 24px;
+      padding: 40px 32px;
+      text-align: center;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.6), 0 0 60px rgba(123, 47, 247, 0.15);
+      position: relative;
+    }
+    .auth-icon {
+      font-size: 48px;
+      margin-bottom: 14px;
+      filter: drop-shadow(0 4px 16px rgba(123, 47, 247, 0.4));
+    }
+    .auth-title {
+      font-size: 24px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #00d2ff, #7b2ff7 60%, #ff6bcb);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 6px;
+    }
+    .auth-sub {
+      font-size: 13px;
+      color: rgba(240, 240, 245, 0.55);
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+    .guest-btn {
+      width: 100%;
+      background: linear-gradient(135deg, #7b2ff7, #5a1fd6);
+      color: #ffffff;
+      border: none;
+      padding: 14px 20px;
+      border-radius: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 4px 20px rgba(123, 47, 247, 0.35);
+      transition: all 0.25s ease;
+    }
+    .guest-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(123, 47, 247, 0.5);
+      background: linear-gradient(135deg, #8f48fc, #6826eb);
+    }
+    .auth-divider {
+      display: flex;
+      align-items: center;
+      margin: 20px 0;
+      color: rgba(255, 255, 255, 0.25);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .auth-divider::before, .auth-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .auth-divider span { padding: 0 10px; }
+    
+    .auth-input {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: #ffffff;
+      font-size: 14px;
+      outline: none;
+      margin-bottom: 12px;
+      transition: border-color 0.2s;
+    }
+    .auth-input:focus {
+      border-color: #7b2ff7;
+      box-shadow: 0 0 0 3px rgba(123, 47, 247, 0.2);
+    }
+    .email-btn {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.08);
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 12px;
+      border-radius: 12px;
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .email-btn:hover {
+      background: rgba(255, 255, 255, 0.14);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+    .auth-card a.back-home {
+      display: inline-block;
+      margin-top: 20px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.45);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .auth-card a.back-home:hover { color: #ffffff; }
+
+    /* ═══════════════════════════════════════════════════════
+       APP HEADER & NAV
+       ═══════════════════════════════════════════════════════ */
+    .top-nav {
+      background: rgba(10, 10, 26, 0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 18px;
+    }
+    .nav-brand-badge {
+      font-size: 11px;
+      font-weight: 700;
+      background: rgba(0, 230, 118, 0.12);
+      border: 1px solid rgba(0, 230, 118, 0.25);
+      color: #69f0ae;
+      padding: 2px 8px;
+      border-radius: 20px;
+      letter-spacing: 0.5px;
+    }
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .user-pill {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.7);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 6px 14px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .nav-link-btn {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: rgba(255, 255, 255, 0.7);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .nav-link-btn:hover {
+      color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.25);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       MAIN CONTAINER
+       ═══════════════════════════════════════════════════════ */
+    .app-container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 32px 24px 60px 24px;
+    }
+
+    /* HERO HEADER */
+    .hero-header {
+      background: linear-gradient(135deg, #0a0a1a 0%, #1a1040 40%, #0d0d2a 100%);
+      border-radius: 20px;
+      padding: 2.4rem 2rem;
+      margin-bottom: 2rem;
+      text-align: center;
+      border: 1px solid rgba(123, 47, 247, 0.2);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-header h1 {
+      font-size: 2.4rem;
+      font-weight: 900;
+      background: linear-gradient(135deg, #00d2ff, #7b2ff7 50%, #ff6bcb);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.4rem;
+      letter-spacing: -0.02em;
+    }
+    .hero-header p {
+      color: rgba(240, 240, 245, 0.6);
+      font-size: 0.95rem;
+    }
+
+    /* UPLOAD ZONE */
+    .upload-box {
+      background: rgba(13, 13, 26, 0.7);
+      border: 2px dashed rgba(123, 47, 247, 0.3);
+      border-radius: 20px;
+      padding: 40px 24px;
+      text-align: center;
+      transition: all 0.25s ease;
+      cursor: pointer;
+      margin-bottom: 24px;
+    }
+    .upload-box:hover {
+      border-color: rgba(123, 47, 247, 0.6);
+      background: rgba(13, 13, 26, 0.9);
+      transform: translateY(-1px);
+    }
+    .upload-icon {
+      font-size: 40px;
+      margin-bottom: 12px;
+    }
+    .upload-box h3 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 6px;
+    }
+    .upload-box p {
+      font-size: 13px;
+      color: rgba(240, 240, 245, 0.5);
+      margin-bottom: 16px;
+    }
+    .upload-actions {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .upload-browse-btn {
+      background: linear-gradient(135deg, #7b2ff7, #5a1fd6);
+      color: #ffffff;
+      border: none;
+      padding: 9px 22px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .upload-browse-btn:hover {
+      box-shadow: 0 4px 15px rgba(123, 47, 247, 0.4);
+    }
+    .sample-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #00d2ff;
+      padding: 9px 20px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .sample-btn:hover {
+      background: rgba(0, 210, 255, 0.12);
+      border-color: rgba(0, 210, 255, 0.3);
+    }
+
+    /* SECTION HEADERS */
+    .section-header {
+      background: linear-gradient(90deg, rgba(123, 47, 247, 0.15), transparent);
+      border-left: 3px solid #7b2ff7;
+      padding: 0.7rem 1.2rem;
+      border-radius: 0 10px 10px 0;
+      margin: 2.2rem 0 1.2rem 0;
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: #e8e8f0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* SCORE CARDS */
+    .scores-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 18px;
+      margin-bottom: 24px;
+    }
+    .score-card {
+      background: rgba(13, 13, 26, 0.85);
+      backdrop-filter: blur(12px);
+      border-radius: 18px;
+      padding: 1.6rem 1.2rem;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+      transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+    }
+    .score-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(123, 47, 247, 0.25);
+    }
+    .score-card .label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: rgba(255, 255, 255, 0.45);
+      margin-bottom: 0.5rem;
+    }
+    .score-card .value {
+      font-size: 2.5rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+    .score-green { color: #00e676; text-shadow: 0 0 20px rgba(0, 230, 118, 0.35); }
+    .score-yellow { color: #ffab00; text-shadow: 0 0 20px rgba(255, 171, 0, 0.35); }
+    .score-red { color: #ff1744; text-shadow: 0 0 20px rgba(255, 23, 68, 0.35); }
+
+    /* VERDICT BANNER */
+    .verdict-banner {
+      border-radius: 14px;
+      padding: 1.2rem 1.8rem;
+      margin: 1rem 0 1.8rem 0;
+      font-weight: 600;
+      font-size: 1rem;
+      text-align: center;
+      letter-spacing: 0.3px;
+      backdrop-filter: blur(8px);
+    }
+    .verdict-safe { background: rgba(0,230,118,0.08); border: 1px solid rgba(0,230,118,0.25); color: #69f0ae; }
+    .verdict-caution { background: rgba(255,171,0,0.08); border: 1px solid rgba(255,171,0,0.25); color: #ffd54f; }
+    .verdict-danger { background: rgba(255,23,68,0.12); border: 1px solid rgba(255,23,68,0.35); color: #ff8a80; }
+
+    /* ALERT CARDS */
+    .alert-card {
+      border-radius: 12px;
+      padding: 1rem 1.3rem;
+      margin: 0.6rem 0;
+      font-size: 0.92rem;
+      font-weight: 500;
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .alert-critical {
+      background: rgba(255, 23, 68, 0.07);
+      border: 1px solid rgba(255, 23, 68, 0.25);
+      border-left: 4px solid #ff1744;
+      color: #ff8a80;
+    }
+    .alert-moderate {
+      background: rgba(255, 171, 0, 0.07);
+      border: 1px solid rgba(255, 171, 0, 0.25);
+      border-left: 4px solid #ffab00;
+      color: #ffd54f;
+    }
+    .alert-minor {
+      background: rgba(100, 181, 246, 0.07);
+      border: 1px solid rgba(100, 181, 246, 0.25);
+      border-left: 4px solid #64b5f6;
+      color: #90caf9;
+    }
+    .severity-badge {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.65rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .sev-critical { background: #ff1744; color: #ffffff; }
+    .sev-moderate { background: #ffab00; color: #0a0a1a; }
+    .sev-minor { background: #64b5f6; color: #0a0a1a; }
+
+    /* TABLE */
+    .table-card {
+      background: rgba(13, 13, 26, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 16px;
+      overflow-x: auto;
+      margin-bottom: 24px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 13px;
+    }
+    th {
+      background: rgba(255, 255, 255, 0.03);
+      padding: 13px 16px;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.6);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+    }
+    td {
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: #d0d0e0;
+    }
+    tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+    .trust-pill {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 11px;
+    }
+    .trust-pill.high { background: rgba(0, 230, 118, 0.15); color: #00e676; border: 1px solid rgba(0, 230, 118, 0.3); }
+    .trust-pill.med { background: rgba(255, 171, 0, 0.15); color: #ffab00; border: 1px solid rgba(255, 171, 0, 0.3); }
+    .trust-pill.low { background: rgba(255, 23, 68, 0.15); color: #ff1744; border: 1px solid rgba(255, 23, 68, 0.3); }
+
+    /* AI INSIGHT BOX */
+    .insight-box {
+      background: rgba(13, 13, 26, 0.9);
+      border: 1px solid rgba(123, 47, 247, 0.25);
+      border-radius: 16px;
+      padding: 1.8rem;
+      color: #d0d0e0;
+      line-height: 1.8;
+      font-size: 0.93rem;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+      margin-bottom: 24px;
+    }
+    .insight-box ul {
+      margin: 10px 0 0 20px;
+    }
+    .insight-box li {
+      margin-bottom: 8px;
+    }
+
+    /* CHART CARD */
+    .chart-card {
+      background: rgba(13, 13, 26, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .chart-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 16px;
+    }
+
+    /* ACTION BAR */
+    .action-bar {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .action-btn {
+      background: rgba(0, 230, 118, 0.12);
+      border: 1px solid rgba(0, 230, 118, 0.25);
+      color: #69f0ae;
+      padding: 10px 20px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    .action-btn:hover {
+      background: rgba(0, 230, 118, 0.2);
+      border-color: rgba(0, 230, 118, 0.4);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════
+       AUTH GATE (SIMPLE & 100% FREE)
+       ═══════════════════════════════════════════════════════ -->
+  <div id="auth-overlay">
+    <div class="auth-card">
+      <div class="auth-icon">🕵️</div>
+      <h2 class="auth-title">Data Lie Detector</h2>
+      <p class="auth-sub">
+        Decision Safety AI engine.<br>
+        100% Free Forever • No paywall • No credit card required.
+      </p>
+
+      <button class="guest-btn" onclick="loginAsGuest()">
+        <span>🕵️</span> Launch as Guest (Instant Access)
+      </button>
+
+      <div class="auth-divider">
+        <span>or enter your email</span>
+      </div>
+
+      <form onsubmit="loginWithEmail(event)">
+        <input type="email" id="auth-email-input" class="auth-input" placeholder="name@company.com" required>
+        <button type="submit" class="email-btn">Sign In with Email →</button>
+      </form>
+
+      <a href="/" class="back-home">← Back to Overview</a>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       NAVBAR
+       ═══════════════════════════════════════════════════════ -->
+  <nav class="top-nav">
+    <a href="/" class="nav-brand">
+      <span>🕵️</span>
+      <span>Data Lie Detector</span>
+      <span class="nav-brand-badge">Free Access</span>
+    </a>
+    <div class="nav-right">
+      <div class="user-pill">
+        <span style="width:7px;height:7px;border-radius:50%;background:#00e676;display:inline-block;"></span>
+        <span id="active-user-display">guest@dataliedetector.com</span>
+      </div>
+      <button class="nav-link-btn" onclick="logout()">Sign Out</button>
+      <a href="/" class="nav-link-btn">Back to Home</a>
+    </div>
+  </nav>
+
+  <!-- ═══════════════════════════════════════════════════════
+       MAIN APPLICATION
+       ═══════════════════════════════════════════════════════ -->
+  <div class="app-container">
+    <div class="hero-header">
+      <h1>🕵️ Data Lie Detector</h1>
+      <p>Upload data → Detect manipulation → Score trust → Make safe decisions</p>
+    </div>
+
+    <!-- UPLOAD ZONE -->
+    <div class="upload-box" id="drop-zone" onclick="document.getElementById('csv-file-input').click()">
+      <div class="upload-icon">📂</div>
+      <h3>Upload CSV Dataset for Decision Safety Audit</h3>
+      <p>Drag and drop your file here, or click to browse (Multi-file & clinical formats supported)</p>
+      
+      <div class="upload-actions" onclick="event.stopPropagation()">
+        <button class="upload-browse-btn" onclick="document.getElementById('csv-file-input').click()">
+          Select CSV File
+        </button>
+        <button class="sample-btn" onclick="loadSampleDataset()">
+          ⚡ Load Sample Clinical Dataset
+        </button>
+      </div>
+
+      <input type="file" id="csv-file-input" style="display:none;" accept=".csv,.txt" onchange="handleFileSelection(event)">
+    </div>
+
+    <!-- REPORT / ANALYSIS RESULTS CONTAINER -->
+    <div id="results-section" style="display:none;">
+      
+      <!-- 1. OVERALL TRUST SCORE & KPIS -->
+      <div class="section-header">
+        <span>🎯</span>
+        <span>Decision Safety & Trust Score</span>
+      </div>
+
+      <div class="scores-grid">
+        <div class="score-card">
+          <div class="label">OVERALL TRUST SCORE</div>
+          <div class="value" id="val-trust-score">84.2</div>
+        </div>
+        <div class="score-card">
+          <div class="label">DECISION RISK</div>
+          <div class="value" id="val-risk-level" style="font-size:1.8rem;margin-top:8px;">Medium Risk</div>
+        </div>
+        <div class="score-card">
+          <div class="label">ANOMALIES FLAGGED</div>
+          <div class="value" id="val-anomalies" style="color:#ffab00;">18</div>
+        </div>
+        <div class="score-card">
+          <div class="label">TOTAL RECORDS</div>
+          <div class="value" id="val-total-rows" style="color:#00d2ff;">891</div>
+        </div>
+      </div>
+
+      <!-- DECISION VERDICT -->
+      <div class="verdict-banner" id="verdict-banner">
+        ⚠️ CAUTION: Safe for exploratory analysis, but not for high-stakes decisions.
+      </div>
+
+      <!-- 2. SEVERITY ALERTS -->
+      <div class="section-header">
+        <span>🚨</span>
+        <span>Integrity Alerts & Manipulation Signatures</span>
+      </div>
+      <div id="alerts-container">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- 3. COLUMN-LEVEL TRUST BREAKDOWN -->
+      <div class="section-header">
+        <span>📊</span>
+        <span>Column-Level Granular Trust Audit</span>
+      </div>
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr>
+              <th>Column Name</th>
+              <th>Data Type</th>
+              <th>Completeness</th>
+              <th>Missing Rows</th>
+              <th>Anomalies</th>
+              <th>Column Trust</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="columns-trust-tbody">
+            <!-- Rendered dynamically -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 4. VISUAL DISTRIBUTION & OUTLIERS -->
+      <div class="section-header">
+        <span>📈</span>
+        <span>Anomaly & Distribution Visualizer</span>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title" id="chart-title">Numeric Outlier & Dispersion Curve</div>
+        <div style="height:320px;">
+          <canvas id="anomalyChart"></canvas>
+        </div>
+      </div>
+
+      <!-- 5. AI ROOT CAUSE & EXPLANATION -->
+      <div class="section-header">
+        <span>🤖</span>
+        <span>AI Decision Verdict & Root Cause Analysis</span>
+      </div>
+      <div class="insight-box" id="ai-insight-box">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- 6. RAW DATA PREVIEW -->
+      <div class="section-header">
+        <span>📄</span>
+        <span>Ingested Records Sample (Top 15 Rows)</span>
+      </div>
+      <div class="table-card">
+        <table id="raw-preview-table">
+          <thead id="raw-preview-thead"></thead>
+          <tbody id="raw-preview-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- ACTION BAR -->
+      <div class="action-bar">
+        <button class="action-btn" onclick="exportAuditJSON()">
+          <span>📥</span> Download Audit Report (JSON)
+        </button>
+        <button class="action-btn" onclick="window.print()">
+          <span>🖨️</span> Print / Save PDF
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // ═══════════════════════════════════════════════════════
+    // AUTH STATE
+    // ═══════════════════════════════════════════════════════
+    function checkAuth() {
+      const savedUser = sessionStorage.getItem('dld_auth_user');
+      if (savedUser) {
+        document.getElementById('auth-overlay').style.display = 'none';
+        document.getElementById('active-user-display').textContent = savedUser;
+      } else {
+        document.getElementById('auth-overlay').style.display = 'flex';
+      }
+    }
+
+    function loginAsGuest() {
+      const guestEmail = "guest_" + Math.floor(Math.random() * 89999 + 10000) + "@dataliedetector.com";
+      sessionStorage.setItem('dld_auth_user', guestEmail);
+      checkAuth();
+    }
+
+    function loginWithEmail(e) {
+      e.preventDefault();
+      const email = document.getElementById('auth-email-input').value.trim();
+      if (!email) return;
+      sessionStorage.setItem('dld_auth_user', email);
+      checkAuth();
+    }
+
+    function logout() {
+      sessionStorage.removeItem('dld_auth_user');
+      checkAuth();
+    }
+
+    window.addEventListener('DOMContentLoaded', checkAuth);
+
+    // ═══════════════════════════════════════════════════════
+    // FILE DRAG & DROP
+    // ═══════════════════════════════════════════════════════
+    const dropZone = document.getElementById('drop-zone');
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = '#00d2ff';
+    });
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.style.borderColor = 'rgba(123, 47, 247, 0.3)';
+    });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = 'rgba(123, 47, 247, 0.3)';
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        processUploadedFile(e.dataTransfer.files[0]);
+      }
+    });
+
+    function handleFileSelection(e) {
+      if (e.target.files && e.target.files[0]) {
+        processUploadedFile(e.target.files[0]);
+      }
+    }
+
+    function processUploadedFile(file) {
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        parseAndAnalyzeCSV(file.name, evt.target.result);
+      };
+      reader.readAsText(file);
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // SAMPLE CLINICAL DATASET
+    // ═══════════════════════════════════════════════════════
+    function loadSampleDataset() {
+      const sampleCSV = `Patient_ID,Age,Gender,Blood_Pressure,Cholesterol,Treatment_Group,Outcome_Score,Hospital_Site
+PT-1001,45,Male,128,210,ActiveDrug,78.5,North Wing
+PT-1002,52,Female,142,245,Placebo,64.2,North Wing
+PT-1003,39,Male,118,190,ActiveDrug,88.1,South Campus
+PT-1004,61,Female,155,270,Placebo,58.0,Central Clinic
+PT-1005,48,Male,130,225,ActiveDrug,82.4,South Campus
+PT-1006,29,Female,110,175,ActiveDrug,94.0,Central Clinic
+PT-1007,74,Male,168,310,Placebo,49.5,North Wing
+PT-1008,55,Female,,230,ActiveDrug,76.2,South Campus
+PT-1009,42,Male,124,198,ActiveDrug,85.0,North Wing
+PT-1010,67,Female,148,,Placebo,61.8,Central Clinic
+PT-1011,50,Male,132,215,ActiveDrug,81.0,North Wing
+PT-1012,48,Male,130,225,ActiveDrug,82.4,South Campus
+PT-1013,88,Male,240,490,Placebo,22.0,Central Clinic
+PT-1014,35,Female,115,182,ActiveDrug,91.5,North Wing
+PT-1015,58,Male,138,235,Placebo,69.0,South Campus
+PT-1016,63,Female,150,260,Placebo,55.4,Central Clinic
+PT-1017,46,Male,126,205,ActiveDrug,84.1,North Wing
+PT-1018,48,Male,130,225,ActiveDrug,82.4,South Campus
+PT-1019,53,Female,140,240,ActiveDrug,79.0,Central Clinic
+PT-1020,41,Male,122,192,ActiveDrug,87.3,South Campus`;
+
+      parseAndAnalyzeCSV("Clinical_Trial_Cohort_2025.csv", sampleCSV);
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // CORE ANALYSIS ENGINE
+    // ═══════════════════════════════════════════════════════
+    let auditReportData = null;
+    let chartInstance = null;
+
+    function parseAndAnalyzeCSV(filename, text) {
+      const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+      if (lines.length < 2) {
+        alert("Selected file has insufficient rows for data integrity auditing.");
+        return;
+      }
+
+      function parseRow(r) {
+        const row = [];
+        let cur = '';
+        let inQuotes = false;
+        for (let i = 0; i < r.length; i++) {
+          const c = r[i];
+          if (c === '"' || c === "'") {
+            inQuotes = !inQuotes;
+          } else if (c === ',' && !inQuotes) {
+            row.push(cur.trim().replace(/^["']|["']$/g, ''));
+            cur = '';
+          } else {
+            cur += c;
+          }
+        }
+        row.push(cur.trim().replace(/^["']|["']$/g, ''));
+        return row;
+      }
+
+      const headers = parseRow(lines[0]);
+      const rows = [];
+      const rowStrings = new Set();
+      let duplicateRows = 0;
+
+      for (let i = 1; i < lines.length; i++) {
+        const row = parseRow(lines[i]);
+        if (row.length === headers.length) {
+          rows.push(row);
+          const rawStr = lines[i].trim();
+          if (rowStrings.has(rawStr)) {
+            duplicateRows++;
+          } else {
+            rowStrings.add(rawStr);
+          }
+        }
+      }
+
+      // Column statistics
+      let totalCells = rows.length * headers.length;
+      let totalMissing = 0;
+      let totalAnomalies = 0;
+      const colStats = [];
+
+      headers.forEach((colName, cIdx) => {
+        let missing = 0;
+        const vals = [];
+        let isNumeric = true;
+        let numVals = [];
+
+        rows.forEach(r => {
+          const val = r[cIdx];
+          if (!val || val === 'null' || val === 'NaN' || val === 'None' || val === '') {
+            missing++;
+          } else {
+            vals.push(val);
+            const num = Number(val);
+            if (!isNaN(num)) {
+              numVals.push(num);
+            } else {
+              isNumeric = false;
+            }
+          }
+        });
+
+        totalMissing += missing;
+        let anomalies = 0;
+
+        // Anomaly Z-score test on numeric columns
+        if (isNumeric && numVals.length > 5) {
+          const mean = numVals.reduce((a,b) => a+b, 0) / numVals.length;
+          const variance = numVals.reduce((a,b) => a + Math.pow(b - mean, 2), 0) / numVals.length;
+          const std = Math.sqrt(variance);
+
+          if (std > 0) {
+            numVals.forEach(v => {
+              const z = Math.abs((v - mean) / std);
+              if (z > 2.5) anomalies++;
+            });
+          }
+        }
+
+        // Suspicious repeated consecutive values check
+        let consecutiveRepeats = 0;
+        for (let i = 1; i < vals.length; i++) {
+          if (vals[i] === vals[i-1]) consecutiveRepeats++;
+        }
+
+        totalAnomalies += anomalies;
+
+        const completeness = rows.length > 0 ? (((rows.length - missing) / rows.length) * 100).toFixed(1) : 100;
+        let colScore = 100;
+        colScore -= (missing / rows.length) * 45;
+        colScore -= Math.min(25, anomalies * 5);
+        if (consecutiveRepeats > rows.length * 0.4) colScore -= 15;
+        colScore = Math.max(20, Math.min(100, Math.round(colScore)));
+
+        colStats.push({
+          name: colName,
+          type: isNumeric && numVals.length > 0 ? 'Numeric' : 'Categorical / Text',
+          completeness: parseFloat(completeness),
+          missing: missing,
+          anomalies: anomalies,
+          score: colScore,
+          numVals: numVals
+        });
+      });
+
+      // Calculate Overall Trust Score
+      let trustScore = 100;
+      const missingPct = totalCells > 0 ? (totalMissing / totalCells) * 100 : 0;
+      trustScore -= missingPct * 1.2;
+      trustScore -= Math.min(25, totalAnomalies * 2.5);
+      if (duplicateRows > 0) trustScore -= Math.min(20, duplicateRows * 4);
+      trustScore = Math.max(15, Math.min(99.5, parseFloat(trustScore.toFixed(1))));
+
+      // Determine Risk & Verdict
+      let riskLevel = "Low Risk";
+      let riskColor = "score-green";
+      let verdictClass = "verdict-safe";
+      let verdictText = "✅ VERIFIED: High data fidelity. Minimal anomaly risk for automated pipelines.";
+
+      if (trustScore < 70) {
+        riskLevel = "High Risk";
+        riskColor = "score-red";
+        verdictClass = "verdict-danger";
+        verdictText = "🚨 HIGH RISK: High proportion of anomalies, missing data, or manipulation signatures detected.";
+      } else if (trustScore < 85) {
+        riskLevel = "Medium Risk";
+        riskColor = "score-yellow";
+        verdictClass = "verdict-caution";
+        verdictText = "⚠️ CAUTION: Safe for exploratory analysis, but not for high-stakes automated decisions.";
+      }
+
+      // Generate 3-Tier Alerts
+      const alerts = [];
+      if (duplicateRows > 0) {
+        alerts.push({
+          sev: 'sev-moderate',
+          title: 'MODERATE SEVERITY',
+          class: 'alert-moderate',
+          desc: `${duplicateRows} exact duplicate records identified in dataset.`
+        });
+      }
+      colStats.forEach(cs => {
+        if (cs.completeness < 75) {
+          alerts.push({
+            sev: 'sev-critical',
+            title: 'CRITICAL SEVERITY',
+            class: 'alert-critical',
+            desc: `Column '${cs.name}' has severe data dropout (${cs.missing} missing rows / ${100 - cs.completeness}% nulls).`
+          });
+        } else if (cs.missing > 0) {
+          alerts.push({
+            sev: 'sev-minor',
+            title: 'MINOR SEVERITY',
+            class: 'alert-minor',
+            desc: `Column '${cs.name}' has ${cs.missing} missing values (${cs.completeness}% complete).`
+          });
+        }
+        if (cs.anomalies > 0) {
+          alerts.push({
+            sev: 'sev-moderate',
+            title: 'MODERATE SEVERITY',
+            class: 'alert-moderate',
+            desc: `Column '${cs.name}' contains ${cs.anomalies} high-leverage outliers exceeding 2.5σ standard deviation.`
+          });
+        }
+      });
+
+      if (alerts.length === 0) {
+        alerts.push({
+          sev: 'sev-minor',
+          title: 'CLEAN AUDIT',
+          class: 'alert-minor',
+          desc: 'No catastrophic omissions or manipulation signatures detected in this pass.'
+        });
+      }
+
+      // Save report data
+      auditReportData = {
+        filename: filename,
+        rows: rows.length,
+        columns: headers.length,
+        trustScore: trustScore,
+        riskLevel: riskLevel,
+        verdict: verdictText,
+        totalMissing: totalMissing,
+        totalAnomalies: totalAnomalies,
+        duplicateRows: duplicateRows,
+        colStats: colStats,
+        alerts: alerts
+      };
+
+      // RENDER UI
+      renderResultsUI(headers, rows);
+    }
+
+    function renderResultsUI(headers, rows) {
+      const d = auditReportData;
+      document.getElementById('results-section').style.display = 'block';
+
+      // KPI scores
+      const scoreElem = document.getElementById('val-trust-score');
+      scoreElem.textContent = d.trustScore;
+      scoreElem.className = 'value ' + (d.trustScore >= 85 ? 'score-green' : (d.trustScore >= 70 ? 'score-yellow' : 'score-red'));
+
+      const riskElem = document.getElementById('val-risk-level');
+      riskElem.textContent = d.riskLevel;
+      riskElem.className = 'value ' + (d.riskLevel === 'Low Risk' ? 'score-green' : (d.riskLevel === 'Medium Risk' ? 'score-yellow' : 'score-red'));
+
+      document.getElementById('val-anomalies').textContent = d.totalAnomalies;
+      document.getElementById('val-total-rows').textContent = d.rows.toLocaleString();
+
+      // Verdict
+      const vb = document.getElementById('verdict-banner');
+      vb.className = 'verdict-banner ' + (d.trustScore >= 85 ? 'verdict-safe' : (d.trustScore >= 70 ? 'verdict-caution' : 'verdict-danger'));
+      vb.textContent = d.verdict;
+
+      // Alerts
+      const alertsContainer = document.getElementById('alerts-container');
+      alertsContainer.innerHTML = d.alerts.map(a => `
+        <div class="alert-card ${a.class}">
+          <span class="severity-badge ${a.sev}">${a.title}</span>
+          <span>${a.desc}</span>
+        </div>
+      `).join('');
+
+      // Column breakdown
+      const tbody = document.getElementById('columns-trust-tbody');
+      tbody.innerHTML = d.colStats.map(cs => {
+        const badgeClass = cs.score >= 85 ? 'high' : (cs.score >= 70 ? 'med' : 'low');
+        const statusLabel = cs.score >= 85 ? 'Healthy' : (cs.score >= 70 ? 'Needs Review' : 'Critical Flaw');
+        return `
+          <tr>
+            <td><strong>${cs.name}</strong></td>
+            <td>${cs.type}</td>
+            <td>${cs.completeness}%</td>
+            <td>${cs.missing}</td>
+            <td>${cs.anomalies}</td>
+            <td><span class="trust-pill ${badgeClass}">${cs.score} / 100</span></td>
+            <td><span style="font-size:11px;color:${cs.score>=85?'#00e676':(cs.score>=70?'#ffab00':'#ff1744')}">${statusLabel}</span></td>
+          </tr>
+        `;
+      }).join('');
+
+      // Chart
+      renderAnomalyChart();
+
+      // AI Root Cause Explanation
+      const aiBox = document.getElementById('ai-insight-box');
+      aiBox.innerHTML = `
+        <strong style="color:#00d2ff;font-size:1.05rem;">🧠 AI Diagnostic Brief for ${d.filename}:</strong>
+        <ul>
+          <li><strong>Overall Assessment:</strong> With an aggregate trust rating of <strong>${d.trustScore}/100</strong>, this dataset is classified as <strong>${d.riskLevel}</strong>.</li>
+          <li><strong>Data Dropout Analysis:</strong> Total missingness is <strong>${d.totalMissing} cells</strong> across ${d.rows} records. Priority imputation is recommended for low-scoring columns.</li>
+          <li><strong>Outlier & Anomaly Source:</strong> Found ${d.totalAnomalies} data points exceeding 2.5σ standard deviation threshold. Verify telemetry calibration or manual entry spikes.</li>
+          <li><strong>Integrity Verdict:</strong> ${d.verdict}</li>
+        </ul>
+      `;
+
+      // Raw Table Preview
+      const rHead = document.getElementById('raw-preview-thead');
+      rHead.innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
+
+      const rBody = document.getElementById('raw-preview-tbody');
+      rBody.innerHTML = rows.slice(0, 15).map(row => 
+        '<tr>' + row.map(v => `<td>${v || '<em style="color:#ff8a80;">null</em>'}</td>`).join('') + '</tr>'
+      ).join('');
+
+      // Scroll to results
+      document.getElementById('results-section').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function renderAnomalyChart() {
+      const d = auditReportData;
+      const numCols = d.colStats.filter(c => c.type === 'Numeric' && c.numVals.length > 5);
+      if (numCols.length === 0) return;
+
+      const primaryNum = numCols[0];
+      document.getElementById('chart-title').textContent = `Outlier & Dispersion: ${primaryNum.name} (Sample of ${Math.min(30, primaryNum.numVals.length)} points)`;
+
+      const sampleVals = primaryNum.numVals.slice(0, 30);
+      const labels = sampleVals.map((_, i) => '#' + (i + 1));
+
+      // Calculate mean & outliers
+      const mean = sampleVals.reduce((a,b)=>a+b, 0) / sampleVals.length;
+      const std = Math.sqrt(sampleVals.reduce((a,b)=>a+Math.pow(b-mean, 2), 0) / sampleVals.length) || 1;
+      
+      const colors = sampleVals.map(v => Math.abs((v - mean) / std) > 2.0 ? '#ff1744' : '#7b2ff7');
+
+      if (chartInstance) chartInstance.destroy();
+      const ctx = document.getElementById('anomalyChart').getContext('2d');
+      chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: primaryNum.name,
+            data: sampleVals,
+            backgroundColor: colors,
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => `Value: ${ctx.raw} (${Math.abs((ctx.raw - mean) / std) > 2.0 ? '🚨 Outlier' : 'Normal'})`
+              }
+            }
+          },
+          scales: {
+            y: {
+              grid: { color: 'rgba(255, 255, 255, 0.08)' },
+              ticks: { color: 'rgba(255, 255, 255, 0.7)' }
+            },
+            x: {
+              grid: { display: false },
+              ticks: { color: 'rgba(255, 255, 255, 0.6)' }
+            }
+          }
+        }
+      });
+    }
+
+    function exportAuditJSON() {
+      if (!auditReportData) return;
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(auditReportData, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `audit_report_${auditReportData.filename}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
+  </script>
+</body>
+</html>
